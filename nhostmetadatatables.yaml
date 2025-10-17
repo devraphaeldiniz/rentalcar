@@ -1,0 +1,46 @@
+- table:
+    schema: public
+    name: profiles
+  select_permissions:
+    - role: user
+      permission:
+        columns: [id, email, full_name, phone, role, created_at]
+        filter:
+          id: { _eq: X-Hasura-User-Id }
+  update_permissions:
+    - role: user
+      permission:
+        columns: [full_name, phone]
+        filter:
+          id: { _eq: X-Hasura-User-Id }
+
+- table:
+    schema: public
+    name: vehicles
+  select_permissions:
+    - role: user
+      permission:
+        columns: '*'
+        filter:
+          status: { _eq: available }
+    - role: anonymous
+      permission:
+        columns: [id, brand, model, year, category, daily_rate, image_url, features]
+        filter:
+          status: { _eq: available }
+
+- table:
+    schema: public
+    name: bookings
+  select_permissions:
+    - role: user
+      permission:
+        columns: '*'
+        filter:
+          user_id: { _eq: X-Hasura-User-Id }
+  insert_permissions:
+    - role: user
+      permission:
+        columns: [vehicle_id, start_date, end_date, total_amount, notes]
+        check:
+          user_id: { _eq: X-Hasura-User-Id }
