@@ -3,38 +3,39 @@ import { Vehicle } from '@/types/database.types'
 
 async function getVehicles() {
   try {
-    const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.nhost.run/v1/graphql`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: `
-            query GetVehicles {
-              vehicles(where: { status: { _eq: "available" } }) {
-                id
-                brand
-                model
-                year
-                plate
-                category
-                daily_rate
-                status
-                image_url
-                features
-                created_at
-              }
+    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `
+          query GetVehicles {
+            vehicles(where: { status: { _eq: "available" } }) {
+              id
+              brand
+              model
+              year
+              plate
+              category
+              daily_rate
+              status
+              image_url
+              images
+              features
+              created_at
             }
-          `
-        }),
-        cache: 'no-store'
-      }
-    )
+          }
+        `
+      }),
+      cache: 'no-store'
+    })
 
-    const { data } = await response.json()
-    return data?.vehicles || []
+    const result = await response.json()
+    
+    return result.data?.vehicles || []
   } catch (error) {
     console.error('Error fetching vehicles:', error)
     return []

@@ -1,25 +1,28 @@
+'use client'
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Vehicle } from '@/types/database.types'
+import { ImageCarousel } from './image-carousel'
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  const displayImages = vehicle.images && vehicle.images.length > 0 
+    ? vehicle.images 
+    : vehicle.image_url 
+    ? [vehicle.image_url] 
+    : []
+
   return (
     <Card>
-      <CardHeader>
-        {vehicle.image_url && (
-          <Image
-            src={vehicle.image_url}
-            alt={`${vehicle.brand} ${vehicle.model}`}
-            width={400}
-            height={250}
-            className="rounded-lg object-cover w-full h-48"
-          />
-        )}
+      <CardHeader className="p-0">
+        <ImageCarousel 
+          images={displayImages} 
+          alt={`${vehicle.brand} ${vehicle.model}`} 
+        />
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <CardTitle className="mb-2">{vehicle.brand} {vehicle.model}</CardTitle>
         <p className="text-sm text-muted-foreground mb-2">{vehicle.year}</p>
         <Badge>{vehicle.category}</Badge>
