@@ -12,15 +12,23 @@ export async function GET() {
       },
       body: JSON.stringify({
         query: `
-          query GetUsers {
-            users(order_by: { createdAt: desc }) {
+          query GetBookings {
+            bookings(order_by: { created_at: desc }) {
               id
-              email
-              displayName
-              emailVerified
-              createdAt
-              metadata
-              defaultRole
+              start_date
+              end_date
+              total_amount
+              status
+              created_at
+              user {
+                email
+                displayName
+              }
+              vehicle {
+                brand
+                model
+                plate
+              }
             }
           }
         `
@@ -30,16 +38,18 @@ export async function GET() {
     const result = await response.json()
 
     if (result.errors) {
+      console.error('GraphQL Errors:', result.errors)
       return NextResponse.json(
         { error: result.errors[0].message },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ users: result.data?.users || [] })
+    return NextResponse.json({ bookings: result.data?.bookings || [] })
   } catch (error) {
+    console.error('API Error:', error)
     return NextResponse.json(
-      { error: 'Erro ao buscar usuários' },
+      { error: 'Erro ao buscar reservas' },
       { status: 500 }
     )
   }

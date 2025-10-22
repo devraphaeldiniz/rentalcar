@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -15,401 +14,244 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Search, MoreHorizontal, UserPlus, Shield, Ban, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Search, Shield, User, Edit, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-type User = {
+type Profile = {
   id: string
+  full_name: string
+  phone: string
+  cpf: string
   email: string
-  displayName: string
-  role: 'admin' | 'user'
-  emailVerified: boolean
-  disabled: boolean
-  createdAt: string
-  lastLogin?: string
+  email_verified: boolean
+  role: string
+  created_at: string
+  blocked: boolean
 }
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
+export default function UsersAdminPage() {
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<string>('all')
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    cpf: ''
+  })
 
   useEffect(() => {
-    fetchUsers()
+    fetchProfiles()
   }, [])
 
-  const fetchUsers = async () => {
+  const fetchProfiles = async () => {
     try {
-      const response = await fetch('/api/admin/users')
+      setIsLoading(true)
+      console.log('=== FETCHING PROFILES ===')
+      const response = await fetch('/api/admin/profiles')
+      console.log('Response status:', response.status)
       const data = await response.json()
-      setUsers(data.users || [])
+      console.log('Response data:', data)
+      console.log('Profiles count:', data.profiles?.length || 0)
+      setProfiles(data.profiles || [])
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error)
+      console.error('Erro ao buscar perfis:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleBlockUser = async (userId: string, block: boolean) => {
-    if (!confirm(`Tem certeza que deseja ${block ? 'bloquear' : 'desbloquear'} este usuário?`)) return
+  const handleEdit = (profile: Profile) => {
+    setEditingProfile(profile)
+    setFormData({
+      fullName: profile.full_name || '',
+      phone: profile.phone || '',
+      cpf: profile.cpf || ''
+    })
+    setIsDialogOpen(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingProfile) return
 
     try {
-      const response = await fetch('/api/admin/users/block', {
-        method: 'POST',
+      const response = await fetch(`/api/admin/profiles/${editingProfile.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, block }),
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          phone: formData.phone,
+          cpf: formData.cpf
+        }),
       })
 
       if (response.ok) {
-        fetchUsers()
+        fetchProfiles()
+        setIsDialogOpen(false)
+        setEditingProfile(null)
       }
     } catch (error) {
-      console.error('Erro ao bloquear usuário:', error)
+      console.error('Erro ao atualizar perfil:', error)
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja DELETAR este usuário permanentemente?')) return
+  const filteredProfiles = profiles.filter(profile =>
+    profile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-    const confirmation = prompt('Digite "DELETAR" para confirmar:')
-    if (confirmation !== 'DELETAR') return
-
-    try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        fetchUsers()
-      }
-    } catch (error) {
-      console.error('Erro ao deletar usuário:', error)
-    }
-  }
-
-  const handleChangeRole = async (userId: string, newRole: string) => {
-    if (!confirm(`Alterar role do usuário para ${newRole}?`)) return
-
-    try {
-      const response = await fetch('/api/admin/users/role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, role: newRole }),
-      })
-
-      if (response.ok) {
-        fetchUsers()
-      }
-    } catch (error) {
-      console.error('Erro ao alterar role:', error)
-    }
-  }
-
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    
-    return matchesSearch && matchesRole
-  })
-
-  const getInitials = (name: string) => {
-    return name
-      ?.split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '??'
-  }
-
-  if (isLoading) {
-    return <div className="p-8">Carregando...</div>
-  }
+  console.log('Rendering. Profiles:', profiles.length, 'Filtered:', filteredProfiles.length)
 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Gerenciamento de Usuários</h1>
-        <p className="text-muted-foreground">
-          {users.length} usuários cadastrados no sistema
-        </p>
+        <h1 className="text-3xl font-bold">Usuários</h1>
+        <p className="text-muted-foreground">Gerencie os perfis dos usuários</p>
       </div>
 
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por email ou nome..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrar por role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="admin">Admins</SelectItem>
-                <SelectItem value="user">Usuários</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Novo Usuário
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabela de Usuários */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuários</CardTitle>
-          <CardDescription>
-            {filteredUsers.length} {filteredUsers.length === 1 ? 'usuário encontrado' : 'usuários encontrados'}
-          </CardDescription>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por email ou nome..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Cadastro</TableHead>
-                <TableHead>Último Login</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Nenhum usuário encontrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
-                          <AvatarFallback>{getInitials(user.displayName || user.email)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.displayName || 'Sem nome'}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role === 'admin' ? (
-                          <>
-                            <Shield className="h-3 w-3 mr-1" />
-                            Admin
-                          </>
-                        ) : (
-                          'Usuário'
-                        )}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {user.disabled ? (
-                          <Badge variant="destructive">
-                            <Ban className="h-3 w-3 mr-1" />
-                            Bloqueado
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-green-600">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Ativo
-                          </Badge>
-                        )}
-                        {user.emailVerified && (
-                          <CheckCircle className="h-4 w-4 text-green-600" title="Email verificado" />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">
-                        {format(new Date(user.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {user.lastLogin 
-                          ? format(new Date(user.lastLogin), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                          : 'Nunca'
-                        }
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedUser(user)
-                            setIsDialogOpen(true)
-                          }}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver Detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleChangeRole(user.id, user.role === 'admin' ? 'user' : 'admin')}>
-                            <Shield className="mr-2 h-4 w-4" />
-                            {user.role === 'admin' ? 'Remover Admin' : 'Tornar Admin'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleBlockUser(user.id, !user.disabled)}>
-                            <Ban className="mr-2 h-4 w-4" />
-                            {user.disabled ? 'Desbloquear' : 'Bloquear'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => handleDeleteUser(user.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Deletar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Total de usuários: {profiles.length} | Exibindo: {filteredProfiles.length}
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>CPF</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cadastro</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredProfiles.map((profile) => (
+                    <TableRow key={profile.id}>
+                      <TableCell>{profile.email || '-'}</TableCell>
+                      <TableCell>{profile.full_name || '-'}</TableCell>
+                      <TableCell>{profile.phone || '-'}</TableCell>
+                      <TableCell>{profile.cpf || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
+                          {profile.role === 'admin' ? (
+                            <>
+                              <Shield className="h-3 w-3 mr-1" />
+                              Admin
+                            </>
+                          ) : (
+                            <>
+                              <User className="h-3 w-3 mr-1" />
+                              Cliente
+                            </>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={profile.blocked ? 'destructive' : 'default'}>
+                          {profile.blocked ? 'Bloqueado' : 'Ativo'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(profile.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(profile)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          )}
+
+          {!isLoading && filteredProfiles.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum usuário encontrado
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Dialog de Detalhes do Usuário */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Detalhes do Usuário</DialogTitle>
+            <DialogTitle>Editar Perfil</DialogTitle>
             <DialogDescription>
-              Informações completas sobre o usuário
+              Altere as informações do perfil do usuário
             </DialogDescription>
           </DialogHeader>
-          {selectedUser && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.email}`} />
-                  <AvatarFallback>{getInitials(selectedUser.displayName || selectedUser.email)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium text-lg">{selectedUser.displayName || 'Sem nome'}</p>
-                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">ID</p>
-                  <p className="text-sm font-mono">{selectedUser.id.slice(0, 8)}...</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Role</p>
-                  <Badge variant={selectedUser.role === 'admin' ? 'default' : 'secondary'}>
-                    {selectedUser.role}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge variant={selectedUser.disabled ? 'destructive' : 'secondary'}>
-                    {selectedUser.disabled ? 'Bloqueado' : 'Ativo'}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Email Verificado</p>
-                  <Badge variant={selectedUser.emailVerified ? 'secondary' : 'destructive'}>
-                    {selectedUser.emailVerified ? 'Sim' : 'Não'}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Cadastro</p>
-                  <p className="text-sm">
-                    {format(new Date(selectedUser.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Último Login</p>
-                  <p className="text-sm">
-                    {selectedUser.lastLogin 
-                      ? format(new Date(selectedUser.lastLogin), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                      : 'Nunca'
-                    }
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => handleBlockUser(selectedUser.id, !selectedUser.disabled)}
-                >
-                  {selectedUser.disabled ? 'Desbloquear' : 'Bloquear'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => handleChangeRole(selectedUser.id, selectedUser.role === 'admin' ? 'user' : 'admin')}
-                >
-                  {selectedUser.role === 'admin' ? 'Remover Admin' : 'Tornar Admin'}
-                </Button>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Email</Label>
+              <Input value={editingProfile?.email} disabled />
             </div>
-          )}
+            <div>
+              <Label>Nome Completo</Label>
+              <Input
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>CPF</Label>
+              <Input
+                value={formData.cpf}
+                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -14,7 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { Car, User, Settings, Shield, History, LogOut, Menu } from 'lucide-react'
+import { Car, User, Settings, Shield, History, LogOut } from 'lucide-react'
 
 export function Header() {
   const { user, isAuthenticated, isAdmin, logout } = useAuth()
@@ -36,13 +36,11 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
           <Car className="h-6 w-6" />
           <span className="font-bold text-xl">RentalCar</span>
         </Link>
 
-        {/* Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
             Veículos
@@ -53,7 +51,7 @@ export function Header() {
           <Link href="/contact" className="text-sm font-medium transition-colors hover:text-primary">
             Contato
           </Link>
-          {isAdmin && (
+          {isAuthenticated && user?.role === 'admin' && (
             <Link href="/admin" className="text-sm font-medium transition-colors hover:text-primary flex items-center gap-1">
               <Shield className="h-4 w-4" />
               Admin
@@ -61,7 +59,6 @@ export function Header() {
           )}
         </nav>
 
-        {/* User Menu */}
         <div className="flex items-center gap-4">
           {isAuthenticated && user ? (
             <DropdownMenu>
@@ -78,7 +75,7 @@ export function Header() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{user.displayName || 'Usuário'}</p>
                     <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    {isAdmin && (
+                    {user.role === 'admin' && (
                       <Badge variant="secondary" className="w-fit mt-1">
                         <Shield className="h-3 w-3 mr-1" />
                         Admin
@@ -90,6 +87,10 @@ export function Header() {
                 <DropdownMenuItem onClick={() => router.push('/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   Perfil
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/profile/bookings')}>
+                  <History className="mr-2 h-4 w-4" />
+                  Minhas Reservas
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/profile/sessions')}>
                   <History className="mr-2 h-4 w-4" />

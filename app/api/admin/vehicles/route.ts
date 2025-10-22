@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET() {
   try {
-    const data = await req.json()
-    const vehicleId = params.id
-
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
     const response = await fetch(url, {
@@ -18,16 +12,22 @@ export async function PATCH(
       },
       body: JSON.stringify({
         query: `
-          mutation UpdateVehicle($id: uuid!, $_set: vehicles_set_input!) {
-            update_vehicles_by_pk(
-              pk_columns: { id: $id }
-              _set: $_set
-            ) {
+          query GetVehicles {
+            vehicles(order_by: { created_at: desc }) {
               id
+              brand
+              model
+              year
+              plate
+              daily_rate
+              category
+              status
+              images
+              features
+              created_at
             }
           }
-        `,
-        variables: { id: vehicleId, _set: data }
+        `
       }),
     })
 
@@ -40,21 +40,18 @@ export async function PATCH(
       )
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ vehicles: result.data?.vehicles || [] })
   } catch (error) {
     return NextResponse.json(
-      { error: 'Erro ao atualizar veículo' },
+      { error: 'Erro ao buscar veículos' },
       { status: 500 }
     )
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest) {
   try {
-    const vehicleId = params.id
+    const data = await req.json()
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
@@ -66,13 +63,13 @@ export async function DELETE(
       },
       body: JSON.stringify({
         query: `
-          mutation DeleteVehicle($id: uuid!) {
-            delete_vehicles_by_pk(id: $id) {
+          mutation CreateVehicle($object: vehicles_insert_input!) {
+            insert_vehicles_one(object: $object) {
               id
             }
           }
         `,
-        variables: { id: vehicleId }
+        variables: { object: data }
       }),
     })
 
@@ -88,7 +85,7 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json(
-      { error: 'Erro ao deletar veículo' },
+      { error: 'Erro ao criar veículo' },
       { status: 500 }
     )
   }

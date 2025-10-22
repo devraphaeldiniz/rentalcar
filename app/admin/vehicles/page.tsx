@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -15,22 +14,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Search, MoreHorizontal, Plus, Edit, Trash2, Eye, Car } from 'lucide-react'
-import Image from 'next/image'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Plus, Search, Edit, Trash2, Car } from 'lucide-react'
 
 type Vehicle = {
   id: string
@@ -38,19 +31,31 @@ type Vehicle = {
   model: string
   year: number
   plate: string
-  category: string
   daily_rate: number
+  category: string
   status: string
   images: string[]
+  features: string[]
+  created_at: string
 }
 
-export default function VehiclesPage() {
-  const router = useRouter()
+export default function VehiclesAdminPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
+  const [formData, setFormData] = useState({
+    brand: '',
+    model: '',
+    year: new Date().getFullYear(),
+    plate: '',
+    daily_rate: 0,
+    category: 'Sedan',
+    status: 'available',
+    images: [''],
+    features: ['']
+  })
 
   useEffect(() => {
     fetchVehicles()
@@ -58,32 +63,9 @@ export default function VehiclesPage() {
 
   const fetchVehicles = async () => {
     try {
-      const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `
-            query GetVehicles {
-              vehicles(order_by: { created_at: desc }) {
-                id
-                brand
-                model
-                year
-                plate
-                category
-                daily_rate
-                status
-                images
-              }
-            }
-          `
-        }),
-      })
-
-      const result = await response.json()
-      setVehicles(result.data?.vehicles || [])
+      const response = await fetch('/api/admin/vehicles')
+      const data = await response.json()
+      setVehicles(data.vehicles || [])
     } catch (error) {
       console.error('Erro ao buscar veículos:', error)
     } finally {
@@ -91,8 +73,38 @@ export default function VehiclesPage() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const cleanData = {
+      ...formData,
+      images: formData.images.filter(img => img.trim() !== ''),
+      features: formData.features.filter(f => f.trim() !== '')
+    }
+
+    try {
+      const url = editingVehicle 
+        ? `/api/admin/vehicles/${editingVehicle.id}`
+        : '/api/admin/vehicles'
+      
+      const response = await fetch(url, {
+        method: editingVehicle ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanData),
+      })
+
+      if (response.ok) {
+        fetchVehicles()
+        setIsDialogOpen(false)
+        resetForm()
+      }
+    } catch (error) {
+      console.error('Erro ao salvar veículo:', error)
+    }
+  }
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja deletar este veículo?')) return
+    if (!confirm('Deseja realmente excluir este veículo?')) return
 
     try {
       const response = await fetch(`/api/admin/vehicles/${id}`, {
@@ -107,165 +119,192 @@ export default function VehiclesPage() {
     }
   }
 
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.plate.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || vehicle.status === statusFilter
-    const matchesCategory = categoryFilter === 'all' || vehicle.category === categoryFilter
-    
-    return matchesSearch && matchesStatus && matchesCategory
-  })
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      available: 'text-green-600',
-      rented: 'text-yellow-600',
-      maintenance: 'text-red-600',
-    }
-    return colors[status] || 'text-gray-600'
+  const handleEdit = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle)
+    setFormData({
+      brand: vehicle.brand,
+      model: vehicle.model,
+      year: vehicle.year,
+      plate: vehicle.plate,
+      daily_rate: vehicle.daily_rate,
+      category: vehicle.category,
+      status: vehicle.status,
+      images: vehicle.images.length > 0 ? vehicle.images : [''],
+      features: vehicle.features.length > 0 ? vehicle.features : ['']
+    })
+    setIsDialogOpen(true)
   }
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      available: 'Disponível',
-      rented: 'Alugado',
-      maintenance: 'Manutenção',
-    }
-    return labels[status] || status
+  const resetForm = () => {
+    setEditingVehicle(null)
+    setFormData({
+      brand: '',
+      model: '',
+      year: new Date().getFullYear(),
+      plate: '',
+      daily_rate: 0,
+      category: 'Sedan',
+      status: 'available',
+      images: [''],
+      features: ['']
+    })
   }
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      economy: 'Econômico',
-      standard: 'Standard',
-      suv: 'SUV',
-      luxury: 'Luxo',
-    }
-    return labels[category] || category
-  }
-
-  if (isLoading) {
-    return <div className="p-8">Carregando...</div>
-  }
+  const filteredVehicles = vehicles.filter(vehicle =>
+    vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.plate.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Gerenciamento de Veículos</h1>
-          <p className="text-muted-foreground">
-            {vehicles.length} veículos cadastrados no sistema
-          </p>
+          <h1 className="text-3xl font-bold">Veículos</h1>
+          <p className="text-muted-foreground">Gerencie a frota de veículos</p>
         </div>
-        <Button onClick={() => router.push('/admin/vehicles/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Veículo
-        </Button>
-      </div>
-
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por marca, modelo ou placa..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Veículo
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingVehicle ? 'Editar' : 'Novo'} Veículo</DialogTitle>
+              <DialogDescription>
+                Preencha as informações do veículo
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Marca</Label>
+                  <Input
+                    value={formData.brand}
+                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Modelo</Label>
+                  <Input
+                    value={formData.model}
+                    onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Ano</Label>
+                  <Input
+                    type="number"
+                    value={formData.year}
+                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Placa</Label>
+                  <Input
+                    value={formData.plate}
+                    onChange={(e) => setFormData({ ...formData, plate: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Diária (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.daily_rate}
+                    onChange={(e) => setFormData({ ...formData, daily_rate: parseFloat(e.target.value) })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Categoria</Label>
+                  <Input
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
-            </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="economy">Econômico</SelectItem>
-                <SelectItem value="standard">Standard</SelectItem>
-                <SelectItem value="suv">SUV</SelectItem>
-                <SelectItem value="luxury">Luxo</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="available">Disponível</SelectItem>
-                <SelectItem value="rented">Alugado</SelectItem>
-                <SelectItem value="maintenance">Manutenção</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Estatísticas Rápidas */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{vehicles.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Disponíveis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {vehicles.filter(v => v.status === 'available').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Alugados
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {vehicles.filter(v => v.status === 'rented').length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Manutenção
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {vehicles.filter(v => v.status === 'maintenance').length}
-            </div>
-          </CardContent>
-        </Card>
+              <div>
+                <Label>URLs das Imagens</Label>
+                {formData.images.map((img, idx) => (
+                  <Input
+                    key={idx}
+                    value={img}
+                    onChange={(e) => {
+                      const newImages = [...formData.images]
+                      newImages[idx] = e.target.value
+                      setFormData({ ...formData, images: newImages })
+                    }}
+                    className="mb-2"
+                    placeholder="https://exemplo.com/imagem.jpg"
+                  />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFormData({ ...formData, images: [...formData.images, ''] })}
+                >
+                  Adicionar Imagem
+                </Button>
+              </div>
+
+              <div>
+                <Label>Características</Label>
+                {formData.features.map((feature, idx) => (
+                  <Input
+                    key={idx}
+                    value={feature}
+                    onChange={(e) => {
+                      const newFeatures = [...formData.features]
+                      newFeatures[idx] = e.target.value
+                      setFormData({ ...formData, features: newFeatures })
+                    }}
+                    className="mb-2"
+                    placeholder="Ex: Ar condicionado"
+                  />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFormData({ ...formData, features: [...formData.features, ''] })}
+                >
+                  Adicionar Característica
+                </Button>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">Salvar</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Tabela de Veículos */}
       <Card>
         <CardHeader>
-          <CardTitle>Veículos</CardTitle>
-          <CardDescription>
-            {filteredVehicles.length} {filteredVehicles.length === 1 ? 'veículo encontrado' : 'veículos encontrados'}
-          </CardDescription>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por marca, modelo ou placa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -280,85 +319,42 @@ export default function VehiclesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVehicles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    Nenhum veículo encontrado
+              {filteredVehicles.map((vehicle) => (
+                <TableRow key={vehicle.id}>
+                  <TableCell>
+                    <div className="font-medium">
+                      {vehicle.brand} {vehicle.model}
+                    </div>
+                    <div className="text-sm text-muted-foreground">{vehicle.year}</div>
+                  </TableCell>
+                  <TableCell>{vehicle.plate}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{vehicle.category}</Badge>
+                  </TableCell>
+                  <TableCell>R$ {vehicle.daily_rate}</TableCell>
+                  <TableCell>
+                    <Badge variant={vehicle.status === 'available' ? 'default' : 'secondary'}>
+                      {vehicle.status === 'available' ? 'Disponível' : 'Indisponível'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(vehicle)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(vehicle.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
                   </TableCell>
                 </TableRow>
-              ) : (
-                filteredVehicles.map((vehicle) => (
-                  <TableRow key={vehicle.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {vehicle.images && vehicle.images.length > 0 ? (
-                          <div className="relative h-12 w-16 rounded overflow-hidden">
-                            <Image
-                              src={vehicle.images[0]}
-                              alt={`${vehicle.brand} ${vehicle.model}`}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-12 w-16 rounded bg-muted flex items-center justify-center">
-                            <Car className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-medium">{vehicle.brand} {vehicle.model}</p>
-                          <p className="text-sm text-muted-foreground">{vehicle.year}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-sm">{vehicle.plate}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getCategoryLabel(vehicle.category)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-semibold">R$ {vehicle.daily_rate}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={getStatusColor(vehicle.status)}>
-                        {getStatusLabel(vehicle.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => router.push(`/vehicles/${vehicle.id}`)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver Detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => router.push(`/admin/vehicles/${vehicle.id}/edit`)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => handleDelete(vehicle.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Deletar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>

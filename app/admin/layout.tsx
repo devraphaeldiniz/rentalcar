@@ -11,7 +11,8 @@ import {
   Calendar, 
   Shield, 
   Settings,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
@@ -66,24 +67,43 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, isAdmin, isAuthenticated } = useAuth()
+  const { user, isAdmin, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/signin')
-    } else if (!isAdmin) {
-      router.push('/')
+    // Só redirecionar DEPOIS que terminar de carregar
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        console.log('[Admin Layout] Not authenticated, redirecting to signin')
+        router.push('/auth/signin')
+      } else if (!isAdmin) {
+        console.log('[Admin Layout] Not admin, redirecting to home')
+        router.push('/')
+      }
     }
-  }, [isAuthenticated, isAdmin, router])
+  }, [isAuthenticated, isAdmin, isLoading, router])
 
+  // Mostrar loading enquanto verifica autenticação
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
+          <p className="text-muted-foreground">Verificando permissões...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Se não estiver autenticado ou não for admin, mostrar loading
+  // (o useEffect vai redirecionar)
   if (!isAuthenticated || !isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Verificando permissões...</p>
+          <p className="text-muted-foreground">Redirecionando...</p>
         </div>
       </div>
     )
@@ -125,7 +145,7 @@ export default function AdminLayout({
           <div className="flex-shrink-0 flex border-t p-4">
             <div className="flex items-center">
               <div>
-                <p className="text-sm font-medium">{user?.displayName}</p>
+                <p className="text-sm font-medium">{user?.displayName || user?.email}</p>
                 <p className="text-xs text-muted-foreground">Administrador</p>
               </div>
             </div>
