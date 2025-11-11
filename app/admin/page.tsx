@@ -31,95 +31,83 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin/dashboard')
       const data = await response.json()
-      setStats(data.stats || stats)
+      setStats(data.stats)
     } catch (error) {
       console.error('Erro ao buscar estatísticas:', error)
     }
   }
 
-  const cards = [
-    {
-      title: 'Receita Total',
-      value: `R$ ${stats.totalRevenue.toLocaleString('pt-BR')}`,
-      description: 'Total de receitas',
-      icon: DollarSign,
-      color: 'text-green-600'
-    },
-    {
-      title: 'Total de Reservas',
-      value: stats.totalBookings,
-      description: 'Todas as reservas',
-      icon: Calendar,
-      color: 'text-blue-600'
-    },
-    {
-      title: 'Veículos',
-      value: stats.totalVehicles,
-      description: `${stats.activeVehicles} disponíveis`,
-      icon: Car,
-      color: 'text-purple-600'
-    },
-    {
-      title: 'Usuários',
-      value: stats.totalUsers,
-      description: 'Total de usuários',
-      icon: Users,
-      color: 'text-orange-600'
-    },
-    {
-      title: 'Pendentes',
-      value: stats.pendingBookings,
-      description: 'Reservas pendentes',
-      icon: Clock,
-      color: 'text-yellow-600'
-    },
-  ]
-
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral do sistema</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card, index) => {
-          const Icon = card.icon
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {card.title}
-                </CardTitle>
-                <Icon className={`h-4 w-4 ${card.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{card.value}</div>
-                <p className="text-xs text-muted-foreground">{card.description}</p>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 mt-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Receita Mensal</CardTitle>
-            <CardDescription>Últimos 6 meses</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
-            Gráfico em desenvolvimento
+          <CardContent>
+            <div className="text-2xl font-bold">R$ {stats.totalRevenue.toLocaleString('pt-BR')}</div>
+            <p className="text-xs text-muted-foreground">Total de receitas</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Reservas por Status</CardTitle>
-            <CardDescription>Distribuição atual</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Reservas</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
-            Gráfico em desenvolvimento
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalBookings}</div>
+            <p className="text-xs text-muted-foreground">Todas as reservas</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Veículos</CardTitle>
+            <Car className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalVehicles}</div>
+            <p className="text-xs text-muted-foreground">{stats.activeVehicles} disponíveis</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuários</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground">Total de usuários</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingBookings}</div>
+            <p className="text-xs text-muted-foreground">Reservas pendentes</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Crescimento</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+12%</div>
+            <p className="text-xs text-muted-foreground">vs. mês anterior</p>
           </CardContent>
         </Card>
       </div>
