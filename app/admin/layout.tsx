@@ -1,8 +1,6 @@
 'use client'
 
-import { useAuth } from '@/lib/hooks/useAuth'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   LayoutDashboard, 
@@ -10,56 +8,22 @@ import {
   Car, 
   Calendar, 
   Shield, 
+  TrendingUp, 
   Settings,
-  TrendingUp,
-  Loader2
+  FileBarChart,
+  LogOut 
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { usePathname } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
-const adminRoutes = [
-  {
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/admin',
-    color: 'text-sky-500'
-  },
-  {
-    label: 'Usuários',
-    icon: Users,
-    href: '/admin/users',
-    color: 'text-violet-500'
-  },
-  {
-    label: 'Veículos',
-    icon: Car,
-    href: '/admin/vehicles',
-    color: 'text-pink-500'
-  },
-  {
-    label: 'Reservas',
-    icon: Calendar,
-    href: '/admin/bookings',
-    color: 'text-orange-500'
-  },
-  {
-    label: 'Segurança',
-    icon: Shield,
-    href: '/admin/security',
-    color: 'text-green-500'
-  },
-  {
-    label: 'Estatísticas',
-    icon: TrendingUp,
-    href: '/admin/analytics',
-    color: 'text-blue-500'
-  },
-  {
-    label: 'Configurações',
-    icon: Settings,
-    href: '/admin/settings',
-    color: 'text-gray-500'
-  },
+const menuItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
+  { icon: Users, label: 'Usuários', href: '/admin/users' },
+  { icon: Car, label: 'Veículos', href: '/admin/vehicles' },
+  { icon: Calendar, label: 'Reservas', href: '/admin/bookings' },
+  { icon: Shield, label: 'Segurança', href: '/admin/security' },
+  { icon: FileBarChart, label: 'Relatórios', href: '/admin/reports' },
+  { icon: TrendingUp, label: 'Estatísticas', href: '/admin/analytics' },
+  { icon: Settings, label: 'Configurações', href: '/admin/settings' },
 ]
 
 export default function AdminLayout({
@@ -67,98 +31,58 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, isAdmin, isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
   const pathname = usePathname()
+  const router = useRouter()
 
-  useEffect(() => {
-    // Só redirecionar DEPOIS que terminar de carregar
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        console.log('[Admin Layout] Not authenticated, redirecting to signin')
-        router.push('/auth/signin')
-      } else if (!isAdmin) {
-        console.log('[Admin Layout] Not admin, redirecting to home')
-        router.push('/')
-      }
-    }
-  }, [isAuthenticated, isAdmin, isLoading, router])
-
-  // Mostrar loading enquanto verifica autenticação
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
-          <p className="text-muted-foreground">Verificando permissões...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Se não estiver autenticado ou não for admin, mostrar loading
-  // (o useEffect vai redirecionar)
-  if (!isAuthenticated || !isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Redirecionando...</p>
-        </div>
-      </div>
-    )
+  const handleLogout = async () => {
+    await fetch('/api/auth/signout', { method: 'POST' })
+    router.push('/auth/signin')
   }
 
   return (
-    <div className="h-screen flex">
-      {/* Sidebar */}
-      <div className="hidden md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-50 bg-muted">
-        <div className="flex flex-col flex-grow pt-5 overflow-y-auto border-r">
-          <div className="flex items-center flex-shrink-0 px-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="ml-2 text-xl font-bold">Admin Panel</span>
-          </div>
-          <div className="mt-8 flex-1 flex flex-col">
-            <nav className="flex-1 px-2 space-y-1">
-              {adminRoutes.map((route) => (
-                <Link
-                  key={route.href}
-                  href={route.href}
-                  className={cn(
-                    'group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors',
-                    pathname === route.href
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted-foreground/10'
-                  )}
-                >
-                  <route.icon
-                    className={cn(
-                      'mr-3 flex-shrink-0 h-5 w-5',
-                      pathname === route.href ? '' : route.color
-                    )}
-                  />
-                  {route.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-          <div className="flex-shrink-0 flex border-t p-4">
-            <div className="flex items-center">
-              <div>
-                <p className="text-sm font-medium">{user?.displayName || user?.email}</p>
-                <p className="text-xs text-muted-foreground">Administrador</p>
-              </div>
-            </div>
-          </div>
+    <div className="flex h-screen">
+      <aside className="w-64 bg-card border-r flex flex-col">
+        <div className="p-6 border-b">
+          <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
-      </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-accent'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            )
+          })}
+        </nav>
 
-      {/* Main Content */}
-      <div className="md:pl-72 flex flex-col flex-1">
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
+        <div className="p-4 border-t">
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-2 h-5 w-5" />
+            Sair
+          </Button>
+        </div>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        {children}
+      </main>
     </div>
   )
 }
