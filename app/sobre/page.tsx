@@ -39,7 +39,6 @@ export default function SobrePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
@@ -53,17 +52,16 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* Nossa História */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold mb-8 text-center">Nossa História</h2>
-            <div className="prose prose-lg mx-auto">
-              <p className="text-lg text-muted-foreground mb-6">
+            <div className="space-y-4">
+              <p className="text-lg text-muted-foreground">
                 A RentalCar nasceu com um objetivo claro: transformar a experiência de aluguel de veículos,
-                tornando-a mais simples, transparente e acessível para todos. 
+                tornando-a mais simples, transparente e acessível para todos.
               </p>
-              <p className="text-lg text-muted-foreground mb-6">
+              <p className="text-lg text-muted-foreground">
                 Desde o início, investimos em tecnologia de ponta e em uma frota diversificada para atender
                 às mais variadas necessidades - desde viagens de negócios até aventuras em família.
               </p>
@@ -76,7 +74,6 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* Nossos Diferenciais */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-12 text-center">Nossos Diferenciais</h2>
@@ -101,7 +98,6 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* Missão, Visão e Valores */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
@@ -134,7 +130,6 @@ export default function SobrePage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-16 bg-primary text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">Pronto para começar?</h2>
@@ -142,7 +137,7 @@ export default function SobrePage() {
             Encontre o veículo perfeito para você
           </p>
           
-            href="/vehicles"
+            href="/"
             className="inline-block bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-white/90 transition-colors"
           >
             Ver Veículos Disponíveis
