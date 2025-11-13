@@ -1,192 +1,179 @@
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Vehicle } from '@/types/database.types'
-import { ImageCarousel } from '@/components/client/image-carousel'
-import { BookingForm } from '@/components/client/booking-form'
-import { ArrowLeft, Users, Fuel, Settings, Calendar, Check } from 'lucide-react'
+import { Calendar, MapPin, Users, Fuel, Gauge, Star } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ReviewList } from '@/components/reviews/review-list'
+import Link from 'next/link'
 
-async function getVehicle(id: string) {
-  try {
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: `
-          query GetVehicle($id: uuid!) {
-            vehicles_by_pk(id: $id) {
-              id
-              brand
-              model
-              year
-              plate
-              category
-              daily_rate
-              status
-              image_url
-              images
-              features
-              description
-              transmission
-              fuel_type
-              passengers
-              doors
-              air_conditioning
-              trunk_capacity
-              created_at
-            }
-          }
-        `,
-        variables: { id }
-      }),
-      cache: 'no-store'
-    })
-
-    const result = await response.json()
-    return result.data?.vehicles_by_pk || null
-  } catch (error) {
-    console.error('Error fetching vehicle:', error)
-    return null
-  }
+interface Vehicle {
+  id: string
+  brand: string
+  model: string
+  year: number
+  daily_rate: number
+  image_url: string
+  images?: string[]
+  plate: string
+  color: string
+  category: string
+  status: string
+  average_rating?: number
+  total_reviews?: number
 }
 
-export default async function VehicleDetailPage({ params }: { params: { id: string } }) {
-  const vehicle = await getVehicle(params.id) as Vehicle | null
+export default function VehicleDetailPage() {
+  const params = useParams()
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-  if (!vehicle) {
-    notFound()
+  useEffect(() => {
+    loadVehicle()
+  }, [params.id])
+
+  const loadVehicle = async () => {
+    try {
+      const response = await fetch(`/api/vehicles/${params.id}`)
+      const data = await response.json()
+      setVehicle(data)
+    } catch (error) {
+      console.error('Error loading vehicle:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const displayImages = vehicle.images && vehicle.images.length > 0 
-    ? vehicle.images 
-    : vehicle.image_url 
-    ? [vehicle.image_url] 
-    : []
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Skeleton className="h-96 w-full mb-8" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    )
+  }
+
+  if (!vehicle) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-muted-foreground">Veículo não encontrado</p>
+      </div>
+    )
+  }
+
+  const images = vehicle.images || (vehicle.image_url ? [vehicle.image_url] : [])
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Link href="/">
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
-        </Button>
-      </Link>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Imagens */}
-        <div>
-          <div className="w-full h-96 mb-4">
-            {displayImages.length > 0 ? (
-              <div className="relative w-full h-full">
-                <ImageCarousel 
-                  images={displayImages} 
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-8 mb-12">
+          {/* Galeria de Imagens */}
+          <div className="space-y-4">
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+              {images.length > 0 ? (
+                <img
+                  src={images[currentImageIndex]}
                   alt={`${vehicle.brand} ${vehicle.model}`}
-                  height="h-96"
+                  className="w-full h-full object-cover"
                 />
-              </div>
-            ) : (
-              <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">Sem imagem</p>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">Sem imagem</p>
+                </div>
+              )}
+            </div>
+            
+            {images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`aspect-video rounded overflow-hidden ${
+                      idx === currentImageIndex ? 'ring-2 ring-primary' : ''
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumb ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Informações */}
-        <div>
-          <div className="mb-6">
-            <Badge className="mb-2">{vehicle.category}</Badge>
-            <h1 className="text-4xl font-bold mb-2">
-              {vehicle.brand} {vehicle.model}
-            </h1>
-            <p className="text-muted-foreground text-lg">{vehicle.year}</p>
-          </div>
-
-          <div className="mb-6">
-            <BookingForm 
-              vehicleId={vehicle.id}
-              dailyRate={vehicle.daily_rate}
-              vehicleName={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`}
-            />
-          </div>
-
-          {/* Especificações */}
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-4">Especificações</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {vehicle.passengers && (
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Passageiros</p>
-                      <p className="font-medium">{vehicle.passengers}</p>
-                    </div>
+          {/* Informações */}
+          <div>
+            <div className="mb-6">
+              <h1 className="text-4xl font-bold mb-2">
+                {vehicle.brand} {vehicle.model}
+              </h1>
+              <div className="flex items-center gap-4">
+                <Badge>{vehicle.year}</Badge>
+                <Badge variant="outline">{vehicle.category}</Badge>
+                {vehicle.average_rating && vehicle.total_reviews ? (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-semibold">{vehicle.average_rating.toFixed(1)}</span>
+                    <span className="text-muted-foreground">({vehicle.total_reviews})</span>
                   </div>
-                )}
-                {vehicle.transmission && (
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Câmbio</p>
-                      <p className="font-medium">{vehicle.transmission}</p>
-                    </div>
-                  </div>
-                )}
-                {vehicle.fuel_type && (
-                  <div className="flex items-center gap-2">
-                    <Fuel className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Combustível</p>
-                      <p className="font-medium">{vehicle.fuel_type}</p>
-                    </div>
-                  </div>
-                )}
-                {vehicle.doors && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Portas</p>
-                      <p className="font-medium">{vehicle.doors}</p>
-                    </div>
-                  </div>
-                )}
+                ) : null}
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Descrição */}
-          {vehicle.description && (
             <Card className="mb-6">
               <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2">Sobre este veículo</h3>
-                <p className="text-muted-foreground">{vehicle.description}</p>
+                <div className="text-3xl font-bold text-primary mb-2">
+                  R$ {vehicle.daily_rate}/dia
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  Valor da diária
+                </p>
+                <Link href={`/vehicles/${vehicle.id}/checkout`}>
+                  <Button size="lg" className="w-full">
+                    <Calendar className="mr-2 h-5 w-5" />
+                    Reservar Agora
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
-          )}
 
-          {/* Características */}
-          {vehicle.features && vehicle.features.length > 0 && (
             <Card>
               <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4">Características</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {vehicle.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-600" />
-                      <span className="text-sm">{feature}</span>
-                    </div>
-                  ))}
+                <h3 className="font-semibold mb-4">Especificações</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <span>Placa: {vehicle.plate}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Fuel className="h-5 w-5 text-muted-foreground" />
+                    <span>Cor: {vehicle.color}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <span>Categoria: {vehicle.category}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Gauge className="h-5 w-5 text-muted-foreground" />
+                    <span>Status: {vehicle.status === 'available' ? 'Disponível' : 'Indisponível'}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          )}
+          </div>
+        </div>
+
+        {/* Avaliações */}
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6">Avaliações</h2>
+          <ReviewList vehicleId={vehicle.id} />
         </div>
       </div>
     </div>

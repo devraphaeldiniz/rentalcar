@@ -11,15 +11,18 @@ import {
   TrendingUp, 
   Settings,
   FileBarChart,
-  LogOut 
+  LogOut,
+  Star
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
   { icon: Users, label: 'Usuários', href: '/admin/users' },
   { icon: Car, label: 'Veículos', href: '/admin/vehicles' },
   { icon: Calendar, label: 'Reservas', href: '/admin/bookings' },
+  { icon: Star, label: 'Avaliações', href: '/admin/reviews' },
   { icon: Shield, label: 'Segurança', href: '/admin/security' },
   { icon: FileBarChart, label: 'Relatórios', href: '/admin/reports' },
   { icon: TrendingUp, label: 'Estatísticas', href: '/admin/analytics' },
@@ -40,13 +43,14 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
       <aside className="w-64 bg-card border-r flex flex-col">
-        <div className="p-6 border-b">
+        <div className="p-6 border-b flex items-center justify-between">
           <h1 className="text-xl font-bold">Admin Panel</h1>
+          <ThemeToggle />
         </div>
         
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
