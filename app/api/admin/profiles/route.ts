@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/authorization'
 
 export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
   const response = await fetch(url, {
