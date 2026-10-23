@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/authorization'
 
 export async function GET(req: NextRequest) {
+  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const searchParams = req.nextUrl.searchParams
     const startDate = searchParams.get('startDate')

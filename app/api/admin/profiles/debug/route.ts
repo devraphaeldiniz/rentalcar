@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/auth/authorization'
 
 export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const adminSecret = process.env.NHOST_ADMIN_SECRET
     const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN
