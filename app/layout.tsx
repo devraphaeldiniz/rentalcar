@@ -1,8 +1,11 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/lib/contexts/theme-context"
 
 const inter = Inter({ subsets: ["latin"] })
+
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "RentalCar - Aluguel de Veículos",
@@ -17,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )

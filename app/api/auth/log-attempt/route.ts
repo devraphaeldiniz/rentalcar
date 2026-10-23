@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { recordLoginAttempt } from '@/lib/security/rate-limit'
 import { getClientIP } from '@/lib/utils/ip'
