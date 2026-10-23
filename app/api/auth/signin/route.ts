@@ -2,16 +2,14 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  console.log('=== API SIGNIN CALLED ===')
-  
   try {
     const { email, password } = await req.json()
-    console.log('Email:', email)
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+      return NextResponse.json({ error: 'E-mail e senha são obrigatórios' }, { status: 400 })
+    }
 
-    console.log('Calling Nhost signin...')
     const nhostUrl = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.auth.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1/signin/email-password`
-    console.log('Nhost URL:', nhostUrl)
-    
+
     const response = await fetch(nhostUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,9 +17,6 @@ export async function POST(req: NextRequest) {
     })
 
     const data = await response.json()
-    console.log('Nhost response status:', response.status)
-    console.log('Nhost response data:', data)
-
     if (!response.ok) {
       console.error('Nhost signin failed')
       return NextResponse.json(
@@ -34,14 +29,10 @@ export async function POST(req: NextRequest) {
       const token = data.session.accessToken
       const refreshToken = data.session.refreshToken
 
-      console.log('Got tokens!')
-      console.log('Access token:', token ? 'exists' : 'missing')
-      console.log('Refresh token:', refreshToken ? 'exists' : 'missing')
-
       const res = NextResponse.json({ success: true })
 
       res.cookies.set('token', token, {
-        httpOnly: false,
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7,
@@ -49,15 +40,12 @@ export async function POST(req: NextRequest) {
       })
 
       res.cookies.set('nhostRefreshToken', refreshToken, {
-        httpOnly: false,
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 30,
         path: '/',
       })
-
-      console.log('Cookies set!')
-      console.log('=== LOGIN SUCCESS ===')
 
       return res
     }
