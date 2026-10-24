@@ -4,12 +4,12 @@ import { requireAdmin } from '@/lib/auth/authorization'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await req.json()
-    const userId = params.id
+    const { id: userId } = await params
 
     console.log('=== UPDATE PROFILE ===')
     console.log('User ID:', userId)

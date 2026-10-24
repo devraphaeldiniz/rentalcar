@@ -24,5 +24,50 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Run typecheck
+        run: npm run typecheck
+
       - name: Run tests
         run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Auditoria de dependências de produção: informativa, NÃO bloqueante.
+      # Por que não bloqueia: o projeto está em Next.js 14 e a versão corrigida
+      # para as vulnerabilidades do advisory atual (GHSA-*) só existe a partir da
+      # linha 16, ou seja, uma mudança de major com quebras de API
+      # (cookies()/params() assíncronos, entre outras). Bloquear todo PR
+      # impediria a evolução do projeto até a migração do framework.
+      # O risco é Accepted e o acompanhamento está em:
+      # https://github.com/devraphaeldiniz/rentalcar/issues (ver issue de
+      # "Atualizar Next.js para versão corrigida e migrar dependências @nhost/* deprecadas").
+      # A auditoria continua sendo EXECUTADA e VISÍVEL no resumo de cada execução.
+      - name: Audit production dependencies (informativa, não bloqueante)
+        continue-on-error: true
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high
+          audit_exit=$?
+          set -e
+
+          {
+            echo "## Auditoria de dependências (informativa, não bloqueante)"
+            echo ""
+            echo "Passo: \`npm audit --omit=dev --audit-level=high\`"
+            echo ""
+            echo "**Código de saída:** \`$audit_exit\`"
+            echo ""
+            if [ "$audit_exit" -eq 0 ]; then
+              echo "✅ Nenhuma vulnerabilidade \`high\` ou superior em dependências de produção."
+            else
+              echo "⚠️ Foram encontradas vulnerabilidades \`high\` ou superior em dependências de produção."
+              echo ""
+              echo "A correção exige Next.js 16 (major) ou a migração dos pacotes \`@nhost/*\`."
+              echo "Acompanhamento: issue de atualização do Next.js e das dependências \`@nhost/*\`."
+            fi
+            echo ""
+            echo "Este passo é informativo e não bloqueia o merge. Lint, typecheck, testes e build continuam bloqueantes."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit 0
