@@ -4,12 +4,12 @@ import { requireAdmin } from '@/lib/auth/authorization'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const { status } = await req.json()
-    const bookingId = params.id
+    const { id: bookingId } = await params
 
     console.log('=== UPDATE BOOKING ===')
     console.log('Booking ID:', bookingId)

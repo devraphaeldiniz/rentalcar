@@ -21,7 +21,7 @@ async function getAccessToken(refreshToken: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     let token = cookieStore.get('token')?.value
 
     if (!token) {

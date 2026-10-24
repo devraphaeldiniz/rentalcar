@@ -45,8 +45,9 @@ async function getBooking(id: string) {
   }
 }
 
-export default async function BookingConfirmationPage({ params }: { params: { id: string } }) {
-  const booking = await getBooking(params.id)
+export default async function BookingConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const booking = await getBooking(id)
 
   if (!booking) {
     notFound()
