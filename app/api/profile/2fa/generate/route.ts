@@ -2,16 +2,19 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import * as speakeasy from 'speakeasy'
 import * as QRCode from 'qrcode'
+import { requireUser } from '@/lib/auth/authorization'
 
 export async function POST() {
+  const user = await requireUser()
+  if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
   try {
-    // Gerar secret
+    // O app autenticador mostra o e-mail de quem está ativando o 2FA
     const secret = speakeasy.generateSecret({
-      name: 'RentalCar (admin@rental.com)',
+      name: `RentalCar (${user.email ?? user.userId})`,
       issuer: 'RentalCar',
     })
 
-    // Gerar QR Code
     const qrCode = await QRCode.toDataURL(secret.otpauth_url || '')
 
     return NextResponse.json({

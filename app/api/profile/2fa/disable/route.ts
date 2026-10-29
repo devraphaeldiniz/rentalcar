@@ -1,10 +1,10 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function POST(req: NextRequest) {
-  const { code } = await req.json()
-
-  // TODO: Verificar código e desativar 2FA no banco
-
-  return NextResponse.json({ success: true })
+// Ver enable/route.ts: o 2FA ainda não é gravado no banco.
+export async function POST() {
+  return NextResponse.json(
+    { success: false, error: 'A desativação do 2FA ainda está em desenvolvimento.' },
+    { status: 501 },
+  )
 }
