@@ -22,12 +22,17 @@ export async function requireUser() {
   }
   if (!token) return null
 
+  // Valida o token no Nhost Auth em vez de só decodificar o JWT:
+  // um token montado à mão (sem assinatura válida) é recusado aqui.
   try {
-    const [, encoded] = token.split('.')
-    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
-    const userId = payload['https://hasura.io/jwt/claims']?.['x-hasura-user-id'] ?? payload.sub
-    if (!userId || (payload.exp && payload.exp * 1000 < Date.now())) return null
-    return { userId, token }
+    const response = await fetch(`https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.auth.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1/user`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+    if (!response.ok) return null
+    const user = await response.json()
+    if (!user?.id) return null
+    return { userId: user.id as string, email: (user.email ?? null) as string | null, token }
   } catch {
     return null
   }

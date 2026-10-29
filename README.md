@@ -5,7 +5,7 @@
 [![Nhost](https://img.shields.io/badge/Nhost-BaaS-purple?style=flat-square)](https://nhost.io)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
-Plataforma full stack para gestão de locação de frotas e reservas de veículos, integrando autenticação em duas etapas (2FA via TOTP), rastreamento de acessos e cálculo automatizado de tarifas. O sistema resolve o controle seguro de frotas e o risco de reservas fraudulentas através de auditoria ativa e controle de permissões.
+Plataforma full stack para gestão de locação de frotas e reservas de veículos, com catálogo de veículos, cálculo automático de diárias, painel administrativo, rate limiting no login e trilha de auditoria. A autenticação em duas etapas (2FA via TOTP) está em desenvolvimento.
 
 ---
 
@@ -50,7 +50,7 @@ flowchart TD
 
 - **Catálogo Dinâmico & Busca Filtrada:** Visualização de veículos com galeria, especificações técnicas, disponibilidade em tempo real e filtros por categoria.
 - **Mecanismo de Reservas:** Cálculo automático de diárias com aplicação de taxas, descontos e validação de período de locação.
-- **Autenticação em Dois Fatores (2FA/TOTP):** Implementação baseada em RFC 6238 com integração ao Google Authenticator e recuperação por códigos de contingência.
+- **Autenticação em Dois Fatores (2FA/TOTP) — em desenvolvimento:** a tela de segurança já gera o QR Code para o Google Authenticator; falta verificar o código e gravar o segredo no banco.
 - **Proteção contra Força Bruta (Rate Limiting):** Bloqueio progressivo de IP após tentativas repetidas de autenticação falha.
 - **Trilha de Auditoria (Audit Logs):** Armazenamento estruturado de ações críticas, logins, alterações de status e IP de origem.
 - **Geração de Comprovantes em PDF:** Emissão de termos e contratos de locação direto no frontend com `jsPDF`.
@@ -64,7 +64,7 @@ flowchart TD
 | **Framework Web** | Next.js 14 (App Router) | Renderização híbrida (SSR/SSG) com Server Components para reduzir o bundle client-side e melhorar SEO. |
 | **Linguagem** | TypeScript 5 | Tipagem estática fim a fim com inferência de schemas via Zod e GraphQL Request. |
 | **Backend & Dados** | Nhost (PostgreSQL 15 + Hasura) | Redução de tempo de entrega fornecendo backend GraphQL nativo com suporte a subscriptions em tempo real e autorização granular. |
-| **Autenticação 2FA** | Speakeasy + QRCode | Implementação desacoplada de algoritmo TOTP permitindo portabilidade e independência de fornecedor de autenticação. |
+| **Autenticação 2FA** | Speakeasy + QRCode | Geração do segredo TOTP e do QR Code no servidor (ativação em desenvolvimento). |
 | **Testes** | Vitest | Execução veloz de testes unitários integrada nativamente ao pipeline de CI. |
 
 ---
@@ -113,12 +113,14 @@ npm run lint
 
 ## 📊 Resultados e Métricas
 
-- **Geração e Validação TOTP:** Verificação de drift temporal validada em suíte unitária de autenticação.
+- **Reservas:** validação de reservas (datas e campos obrigatórios) coberta por testes unitários com Vitest (`__tests__/bookings.test.ts`).
 
 ---
 
 ## ⚠️ Limitações e Próximos Passos
 
+- [ ] Concluir o 2FA: verificar o código TOTP, gravar o segredo e exigir o código no login.
+- [ ] Concluir as ações de admin ainda simuladas (bloquear usuário e alterar papel) e a listagem de sessões ativas.
 - [ ] Medir a latência p95 das consultas GraphQL de listagem com filtros.
 - [ ] Fazer testes de carga com reservas concorrentes no mesmo veículo.
 - [ ] Integrar gateway de pagamento para captura e autorização direta de cartão de crédito.
