@@ -114,13 +114,13 @@ npm run lint
 ## 📊 Resultados e Métricas
 
 - **Geração e Validação TOTP:** Verificação de drift temporal validada em suíte unitária de autenticação.
-- **Tempo Médio de Resposta GraphQL:** `TODO: Registrar benchmarks de latência p95 para consultas de listagem com filtros.`
-- **Capacidade Concorrente de Reservas:** `TODO: Conduzir testes de carga simulando reservas concorrentes no mesmo veículo.`
 
 ---
 
 ## ⚠️ Limitações e Próximos Passos
 
+- [ ] Medir a latência p95 das consultas GraphQL de listagem com filtros.
+- [ ] Fazer testes de carga com reservas concorrentes no mesmo veículo.
 - [ ] Integrar gateway de pagamento para captura e autorização direta de cartão de crédito.
 - [ ] Adicionar suporte a devolução com checklist fotográfico enviado pelo cliente.
 - [ ] Implementar notificações push via WebSockets / GraphQL Subscriptions no painel admin.
