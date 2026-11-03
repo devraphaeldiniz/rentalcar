@@ -5,10 +5,14 @@ export const CATEGORY_LABELS: Record<string, string> = {
   economy: 'Econômico',
   standard: 'Intermediário',
   suv: 'SUV',
+  minivan: '7 lugares',
+  pickup: 'Picape',
+  electric: 'Elétrico e híbrido',
   luxury: 'Executivo',
+  sports: 'Esportivo',
 }
 
-export const CATEGORY_ORDER = ['economy', 'standard', 'suv', 'luxury'] as const
+export const CATEGORY_ORDER = ['economy', 'standard', 'suv', 'minivan', 'pickup', 'electric', 'luxury', 'sports'] as const
 
 export const MAX_RENTAL_DAYS = 90
 

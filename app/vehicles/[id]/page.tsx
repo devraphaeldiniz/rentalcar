@@ -27,6 +27,7 @@ type Vehicle = {
   features: string[] | null
   images: string[] | null
   image_url: string | null
+  image_credits: { author: string; license: string; source: string }[] | null
   average_rating: number | null
   total_reviews: number | null
 }
@@ -37,7 +38,7 @@ async function getVehicle(id: string) {
     `query VehicleDetail($id: uuid!) {
       vehicles_by_pk(id: $id) {
         id brand model year category daily_rate status description transmission fuel_type
-        passengers doors trunk_capacity air_conditioning color features images image_url
+        passengers doors trunk_capacity air_conditioning color features images image_url image_credits
         average_rating total_reviews
       }
     }`,
@@ -94,7 +95,7 @@ export default async function VehicleDetailPage({
           ) : null}
 
           <div className="mt-6">
-            <VehicleGallery images={images} name={name} />
+            <VehicleGallery images={images} name={name} credits={vehicle.images?.length ? vehicle.image_credits ?? [] : []} />
           </div>
         </div>
 

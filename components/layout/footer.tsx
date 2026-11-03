@@ -22,6 +22,7 @@ export function Footer() {
           <Link href="/profile/bookings" className="hover:text-lane">Minhas reservas</Link>
           <Link href="/sobre" className="hover:text-lane">Sobre</Link>
           <Link href="/contato" className="hover:text-lane">Contato</Link>
+          <Link href="/creditos" className="hover:text-lane">Créditos das fotos</Link>
         </nav>
         <p className="text-asphalt-foreground/60 md:text-right">
           Projeto de portfólio. Reservas não geram cobrança.

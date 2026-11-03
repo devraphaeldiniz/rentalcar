@@ -2,7 +2,6 @@
 // Prepara um projeto Nhost do zero (ou atualiza um existente) para o RentalCar.
 //
 //   node scripts/setup-nhost.mjs                      aplica migrações e metadata
-//   node scripts/setup-nhost.mjs --seed               ...e cadastra veículos de exemplo
 //   node scripts/setup-nhost.mjs --admin voce@email   ...e promove esse usuário a admin
 //
 // Lê NEXT_PUBLIC_NHOST_SUBDOMAIN, NEXT_PUBLIC_NHOST_REGION e NHOST_ADMIN_SECRET
@@ -14,7 +13,6 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
-const wantSeed = args.includes('--seed')
 const adminEmail = args.includes('--admin') ? args[args.indexOf('--admin') + 1] : null
 
 // ---------- configuração ----------
@@ -118,7 +116,7 @@ const ARRAY_RELS = [
 const VEHICLE_PUBLIC_COLUMNS = [
   'id', 'brand', 'model', 'year', 'plate', 'color', 'category', 'daily_rate', 'status',
   'description', 'transmission', 'fuel_type', 'passengers', 'doors', 'air_conditioning', 'trunk_capacity',
-  'features', 'images', 'image_url', 'average_rating', 'total_reviews', 'created_at',
+  'features', 'images', 'image_url', 'image_credits', 'average_rating', 'total_reviews', 'created_at',
 ]
 
 // O admin do painel usa o admin secret no servidor; aqui só entram os papéis
@@ -177,20 +175,7 @@ async function applyMetadata() {
 }
 
 // ---------- 3. extras ----------
-async function seed() {
-  console.log('\n→ Veículos de exemplo')
-  const result = await sql(`
-    INSERT INTO vehicles (brand, model, year, plate, color, category, daily_rate, status, description, transmission, fuel_type, passengers, doors, trunk_capacity, features)
-    VALUES
-      ('Fiat', 'Mobi', 2024, 'RCX1A01', 'Branco', 'economy', 119.90, 'available', 'Compacto econômico para a cidade.', 'Manual', 'Flex', 5, 4, '215 L', '["Ar-condicionado", "Direção elétrica"]'),
-      ('Volkswagen', 'Polo', 2024, 'RCX1A02', 'Prata', 'standard', 169.90, 'available', 'Hatch confortável e econômico.', 'Automático', 'Flex', 5, 4, '300 L', '["Ar-condicionado", "Multimídia", "Câmera de ré"]'),
-      ('Jeep', 'Compass', 2024, 'RCX1A03', 'Preto', 'suv', 289.90, 'available', 'SUV espaçoso para viagens.', 'Automático', 'Flex', 5, 4, '410 L', '["Ar digital", "Multimídia", "Piloto automático"]'),
-      ('BMW', '320i', 2023, 'RCX1A04', 'Azul', 'luxury', 459.90, 'available', 'Sedã premium.', 'Automático', 'Gasolina', 5, 4, '480 L', '["Bancos de couro", "Teto solar", "Som premium"]')
-    ON CONFLICT (plate) DO NOTHING
-    RETURNING id`)
-  console.log(`  + ${Math.max(0, (result.result?.length ?? 1) - 1)} veículos novos`)
-}
-
+// O catálogo de veículos vem da migração 005 (antes era a opção --seed).
 async function makeAdmin(email) {
   console.log(`\n→ Admin: ${email}`)
   const safe = email.replace(/'/g, "''").toLowerCase()
@@ -204,7 +189,6 @@ try {
   console.log(`Projeto: ${env.NEXT_PUBLIC_NHOST_SUBDOMAIN} (${env.NEXT_PUBLIC_NHOST_REGION})`)
   await migrate()
   await applyMetadata()
-  if (wantSeed) await seed()
   if (adminEmail) await makeAdmin(adminEmail)
   console.log('\n✔ Banco pronto.')
 } catch (error) {

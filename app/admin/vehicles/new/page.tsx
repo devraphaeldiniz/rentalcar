@@ -212,9 +212,13 @@ export default function NewVehiclePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="economy">Econômico</SelectItem>
-                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="standard">Intermediário</SelectItem>
                       <SelectItem value="suv">SUV</SelectItem>
-                      <SelectItem value="luxury">Luxo</SelectItem>
+                      <SelectItem value="minivan">7 lugares</SelectItem>
+                      <SelectItem value="pickup">Picape</SelectItem>
+                      <SelectItem value="electric">Elétrico e híbrido</SelectItem>
+                      <SelectItem value="luxury">Executivo</SelectItem>
+                      <SelectItem value="sports">Esportivo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
