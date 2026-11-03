@@ -3,78 +3,99 @@
 @tailwind utilities;
 
 /*
-  Identidade RentalCar: sinalização de estrada.
-  Asfalto #1C232B, placa azul #1450B8, faixa amarela #F5B700,
-  concreto #EEF1F4, linha #D5DBE2.
+  Identidade AstaCar — "Rent & Freedom".
+  Noite na estrada: fundo grafite-azulado, azul AstaCar como cor de ação
+  e ciano elétrico só para destaques (preço, ícones, item ativo).
+  Regra: o ciano nunca é usado em blocos grandes de texto.
 */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 210 21% 14%;
+    /* Tema claro */
+    --background: 216 33% 97%;
+    --foreground: 222 47% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 210 21% 14%;
+    --card-foreground: 222 47% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 21% 14%;
-    --primary: 218 80% 40%;
+    --popover-foreground: 222 47% 9%;
+    --primary: 217 100% 44%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 22% 95%;
-    --secondary-foreground: 210 21% 14%;
-    --muted: 210 22% 95%;
-    --muted-foreground: 211 11% 38%;
-    --accent: 210 22% 95%;
-    --accent-foreground: 210 21% 14%;
+    --secondary: 216 30% 93%;
+    --secondary-foreground: 222 47% 9%;
+    --muted: 216 30% 93%;
+    --muted-foreground: 217 14% 36%;
+    --accent: 216 30% 93%;
+    --accent-foreground: 222 47% 9%;
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 213 19% 86%;
-    --input: 213 19% 80%;
-    --ring: 218 80% 40%;
-    --radius: 0.5rem;
+    --success: 152 69% 28%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 92% 36%;
+    --warning-foreground: 0 0% 100%;
+    --border: 216 24% 87%;
+    --input: 216 20% 80%;
+    --ring: 217 100% 44%;
+    --radius: 0.75rem;
 
-    --asphalt: 210 21% 14%;
-    --asphalt-foreground: 210 20% 96%;
-    --lane: 45 100% 48%;
-    --lane-foreground: 210 21% 14%;
+    /* Ciano elétrico, escurecido no claro para manter contraste AA */
+    --electric: 192 91% 31%;
+    --electric-foreground: 0 0% 100%;
+    /* Superfície profunda (hero, rodapé, menu do admin) — escura nos dois temas */
+    --asphalt: 222 41% 7%;
+    --asphalt-foreground: 210 40% 96%;
   }
 
   .dark {
-    --background: 210 22% 9%;
-    --foreground: 210 20% 94%;
-    --card: 210 21% 12%;
-    --card-foreground: 210 20% 94%;
-    --popover: 210 21% 12%;
-    --popover-foreground: 210 20% 94%;
-    --primary: 216 85% 62%;
-    --primary-foreground: 210 22% 9%;
-    --secondary: 210 18% 18%;
-    --secondary-foreground: 210 20% 94%;
-    --muted: 210 18% 16%;
-    --muted-foreground: 210 12% 66%;
-    --accent: 210 18% 18%;
-    --accent-foreground: 210 20% 94%;
-    --destructive: 0 65% 55%;
+    --background: 222 41% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222 33% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 33% 11%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 26% 15%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 26% 14%;
+    --muted-foreground: 215 20% 66%;
+    --accent: 222 26% 16%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 72% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 16% 24%;
-    --input: 210 16% 30%;
-    --ring: 216 85% 62%;
+    --success: 152 60% 48%;
+    --success-foreground: 222 41% 7%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 41% 7%;
+    --border: 222 22% 20%;
+    --input: 222 20% 26%;
+    --ring: 186 100% 50%;
 
-    --asphalt: 210 24% 6%;
-    --asphalt-foreground: 210 20% 96%;
-    --lane: 45 100% 52%;
-    --lane-foreground: 210 24% 8%;
+    --electric: 186 100% 50%;
+    --electric-foreground: 222 41% 7%;
+    --asphalt: 224 45% 5%;
+    --asphalt-foreground: 210 40% 96%;
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "tnum" 1;
   }
 
   h1, h2, h3 {
-    font-stretch: 112%;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: hsl(var(--electric) / 0.35);
   }
 }
 
@@ -83,11 +104,33 @@
     text-wrap: balance;
   }
 
-  /* Faixa tracejada de estrada, usada uma única vez na home */
+  /* Números alinhados em preços e tabelas */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Gradiente da marca: só no CTA principal e na palavra destacada do hero */
+  .bg-brand-gradient {
+    background-image: linear-gradient(100deg, hsl(var(--primary)) 0%, hsl(205 100% 48%) 60%, hsl(186 100% 45%) 100%);
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(90deg, hsl(186 100% 55%) 0%, hsl(217 100% 62%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Grade de pontos do fundo do hero */
+  .bg-dot-grid {
+    background-image: radial-gradient(hsl(215 30% 30% / 0.55) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Faixa tracejada de estrada (indicador de carregamento) */
   .lane-dashes {
     background-image: repeating-linear-gradient(
       90deg,
-      hsl(var(--lane)) 0 28px,
+      hsl(var(--electric)) 0 28px,
       transparent 28px 52px
     );
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { PageHero } from '@/components/layout/page-hero'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,19 +76,7 @@ export default function ContatoPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Entre em Contato
-            </h1>
-            <p className="text-xl text-white/90">
-              Estamos aqui para ajudar. Envie sua mensagem e responderemos em breve!
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero eyebrow="Atendimento" title="Fale com a AstaCar" subtitle="Dúvidas sobre uma reserva ou sobre a frota? Envie sua mensagem e respondemos por e-mail." />
 
       {/* Contact Info Cards */}
       <section className="py-16">
@@ -99,13 +88,13 @@ export default function ContatoPage() {
                 <Card key={index} className="hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center text-center">
-                      <div className="mb-4 p-3 bg-primary/10 rounded-full">
-                        <Icon className="h-6 w-6 text-primary" />
+                      <div className="mb-4 rounded-xl border border-electric/25 bg-electric/10 p-3">
+                        <Icon className="h-6 w-6 text-electric" />
                       </div>
                       <h3 className="font-semibold mb-2">{item.title}</h3>
                       <a 
                         href={item.link}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                        className="text-sm text-muted-foreground hover:text-electric transition-colors"
                       >
                         {item.info}
                       </a>

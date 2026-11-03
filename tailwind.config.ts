@@ -30,11 +30,14 @@ const config: Config = {
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
-        // Cores da marca: asfalto (superfícies escuras) e faixa (destaque de preço)
+        success: { DEFAULT: "hsl(var(--success))", foreground: "hsl(var(--success-foreground))" },
+        warning: { DEFAULT: "hsl(var(--warning))", foreground: "hsl(var(--warning-foreground))" },
+        // Cores da marca AstaCar: superfície profunda e ciano elétrico de destaque
         asphalt: { DEFAULT: "hsl(var(--asphalt))", foreground: "hsl(var(--asphalt-foreground))" },
-        lane: { DEFAULT: "hsl(var(--lane))", foreground: "hsl(var(--lane-foreground))" },
+        electric: { DEFAULT: "hsl(var(--electric))", foreground: "hsl(var(--electric-foreground))" },
       },
       borderRadius: {
+        xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -43,7 +46,7 @@ const config: Config = {
         lane: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(52px)' } },
       },
       fontFamily: {
-        sans: ["var(--font-archivo)", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
     },
   },

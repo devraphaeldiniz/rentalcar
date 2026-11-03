@@ -106,7 +106,7 @@ export default function CheckoutPage() {
   if (loading || authLoading || !isAuthenticated) {
     return (
       <main className="container flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Carregando" />
+        <Loader2 className="h-6 w-6 animate-spin text-electric" aria-label="Carregando" />
       </main>
     )
   }
@@ -115,7 +115,7 @@ export default function CheckoutPage() {
     return (
       <main className="container py-16">
         <h1 className="text-2xl font-bold">Carro não encontrado</h1>
-        <Link href="/" className="mt-3 inline-block text-primary hover:underline">Ver carros disponíveis</Link>
+        <Link href="/" className="mt-3 inline-block text-electric hover:underline">Ver carros disponíveis</Link>
       </main>
     )
   }
@@ -128,22 +128,23 @@ export default function CheckoutPage() {
       <Link href={`/vehicles/${id}?retirada=${start}&devolucao=${end}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Voltar para o carro
       </Link>
-      <h1 className="mt-4 text-3xl font-bold">Revise e confirme</h1>
+      <p className="mt-6 text-xs font-bold uppercase tracking-widest text-electric">Última etapa</p>
+      <h1 className="mt-1 text-3xl font-extrabold">Revise e confirme</h1>
 
       <form onSubmit={confirm} className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="grid gap-8 content-start">
-          <section className="flex gap-4 rounded-lg border p-4">
-            <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
+          <section className="flex gap-4 rounded-2xl border bg-card p-4">
+            <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg bg-muted">
               {image && <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} | {vehicle.year}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-electric">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} · {vehicle.year}</p>
               <p className="text-xl font-bold">{name}</p>
               <p className="text-sm text-muted-foreground">{formatBRL(rate)} por diária</p>
             </div>
           </section>
 
-          <section>
+          <section className="rounded-2xl border bg-card p-5">
             <h2 className="text-lg font-bold">Período</h2>
             <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
               <div className="grid gap-1.5">
@@ -159,7 +160,7 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          <section>
+          <section className="rounded-2xl border bg-card p-5">
             <h2 className="text-lg font-bold">Quem vai retirar</h2>
             <dl className="mt-3 grid max-w-md gap-2 text-sm">
               <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Nome</dt><dd className="font-medium">{user?.displayName || 'Não informado'}</dd></div>
@@ -167,12 +168,12 @@ export default function CheckoutPage() {
             </dl>
             <p className="mt-2 text-sm text-muted-foreground">
               Leve documento com foto e CNH válida na retirada.{' '}
-              <Link href="/profile" className="text-primary hover:underline">Atualizar meus dados</Link>
+              <Link href="/profile" className="text-electric hover:underline">Atualizar meus dados</Link>
             </p>
           </section>
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:self-start rounded-lg border bg-card p-5">
+        <aside className="lg:sticky lg:top-24 lg:self-start rounded-2xl border bg-card p-6 shadow-xl shadow-black/10">
           <h2 className="text-lg font-bold">Resumo</h2>
           {validPeriod ? (
             <>
@@ -183,7 +184,7 @@ export default function CheckoutPage() {
               </div>
               <div className="mt-4 flex items-end justify-between border-t pt-4">
                 <span className="font-medium">Total</span>
-                <span className="text-2xl font-bold"><span className="bg-lane/30 px-1 -mx-1 rounded-sm">{formatBRL(rate * days)}</span></span>
+                <span className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(rate * days)}</span></span>
               </div>
             </>
           ) : (
@@ -192,7 +193,7 @@ export default function CheckoutPage() {
 
           {error && <p role="alert" className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" size="lg" className="mt-5 w-full" disabled={!validPeriod || submitting}>
+          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || submitting}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {submitting ? 'Confirmando...' : 'Confirmar reserva'}
           </Button>

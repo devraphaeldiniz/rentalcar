@@ -14,7 +14,7 @@ import { useToast } from '@/components/ui/use-toast'
 export default function SettingsPage() {
   const { toast } = useToast()
   const [settings, setSettings] = useState({
-    siteName: 'RentalCar',
+    siteName: 'AstaCar',
     siteDescription: 'Sistema de aluguel de veículos',
     contactEmail: 'contato@rentalcar.com',
     supportEmail: 'suporte@rentalcar.com',

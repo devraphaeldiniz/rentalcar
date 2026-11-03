@@ -15,7 +15,7 @@ type Props = {
 }
 
 export const dateInputClass =
-  'h-11 w-full rounded-md border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'h-11 w-full rounded-lg border border-input bg-background px-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 export function ReserveBox({ vehicleId, dailyRate, initialStart, initialEnd, available }: Props) {
   const today = todayIso()
@@ -26,9 +26,9 @@ export function ReserveBox({ vehicleId, dailyRate, initialStart, initialEnd, ava
   const valid = start >= today && days >= 1 && days <= MAX_RENTAL_DAYS
 
   return (
-    <div className="rounded-lg border bg-card p-5 shadow-sm">
-      <p className="text-3xl font-bold">{formatBRL(dailyRate)}</p>
-      <p className="text-sm text-muted-foreground">por diária</p>
+    <div className="rounded-2xl border bg-card p-6 shadow-xl shadow-black/10">
+      <p className="text-xs text-muted-foreground">Valor da diária</p>
+      <p className="tabular text-3xl font-black">{formatBRL(dailyRate)}<span className="text-sm font-medium text-muted-foreground">/dia</span></p>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="grid gap-1.5">
@@ -45,19 +45,19 @@ export function ReserveBox({ vehicleId, dailyRate, initialStart, initialEnd, ava
 
       <div className="mt-5 flex items-end justify-between border-t pt-4">
         <span className="text-sm text-muted-foreground">{valid ? `${pluralDays(days)} de ${formatBRL(dailyRate)}` : 'Escolha um período válido'}</span>
-        {valid && <span className="text-xl font-bold"><span className="bg-lane/30 px-1 -mx-1 rounded-sm">{formatBRL(dailyRate * days)}</span></span>}
+        {valid && <span className="text-xl font-bold"><span className="tabular font-black text-electric">{formatBRL(dailyRate * days)}</span></span>}
       </div>
 
       {available ? (
         valid ? (
-          <Button asChild size="lg" className="mt-4 w-full">
+          <Button asChild variant="brand" size="lg" className="mt-4 w-full">
             <Link href={`/vehicles/${vehicleId}/checkout?retirada=${start}&devolucao=${end}`}>Continuar para a reserva</Link>
           </Button>
         ) : (
           <Button size="lg" className="mt-4 w-full" disabled>Continuar para a reserva</Button>
         )
       ) : (
-        <p className="mt-4 rounded-md bg-muted p-3 text-sm">Este carro está indisponível para reservas no momento.</p>
+        <p className="mt-4 rounded-lg bg-muted p-3 text-sm">Este carro está indisponível para reservas no momento.</p>
       )}
       <p className="mt-3 text-xs text-muted-foreground">Pagamento na retirada. Nenhuma cobrança online.</p>
     </div>

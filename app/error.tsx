@@ -13,7 +13,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
 
   return (
     <main className="container flex min-h-[60vh] flex-col items-start justify-center py-16">
-      <p className="text-sm font-medium text-muted-foreground">Algo deu errado</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-electric">Algo deu errado</p>
       <h1 className="mt-2 text-3xl font-bold">Não foi possível carregar esta página.</h1>
       <p className="mt-3 max-w-md text-muted-foreground">
         Pode ser uma instabilidade momentânea. Tente de novo; se continuar, fale com o atendimento.

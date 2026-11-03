@@ -39,7 +39,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
 
   return (
     <main className="container max-w-2xl py-12">
-      <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden />
+      <CheckCircle2 className="h-10 w-10 text-success" aria-hidden />
       <h1 className="mt-4 text-3xl font-bold">Reserva registrada</h1>
       <p className="mt-2 text-muted-foreground">
         Ela fica como &ldquo;{status.toLowerCase()}&rdquo; até a loja confirmar. Você acompanha tudo em Minhas reservas.
@@ -58,7 +58,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
           </div>
           <div>
             <dt className="text-sm text-muted-foreground">Código</dt>
-            <dd className="font-bold tracking-wide">{booking.id.slice(0, 8).toUpperCase()}</dd>
+            <dd className="font-bold tracking-wide text-electric">ASTA-{booking.id.slice(0, 8).toUpperCase()}</dd>
           </div>
           <div>
             <dt className="text-sm text-muted-foreground">Retirada</dt>
@@ -73,7 +73,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
               <dt className="text-sm text-muted-foreground">Total</dt>
               <dd className="text-sm text-muted-foreground">{pluralDays(days)}, pagamento na retirada</dd>
             </div>
-            <dd className="text-2xl font-bold"><span className="bg-lane/30 px-1 -mx-1 rounded-sm">{formatBRL(Number(booking.total_amount))}</span></dd>
+            <dd className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(Number(booking.total_amount))}</span></dd>
           </div>
         </dl>
       </section>
@@ -81,7 +81,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
       <p className="mt-6 text-sm text-muted-foreground">Na retirada, leve documento com foto e CNH válida.</p>
 
       <div className="mt-8 flex flex-wrap gap-3">
-        <Button asChild><Link href="/profile/bookings">Ver minhas reservas</Link></Button>
+        <Button asChild variant="brand"><Link href="/profile/bookings">Ver minhas reservas</Link></Button>
         <Button asChild variant="outline"><Link href="/">Voltar aos carros</Link></Button>
       </div>
     </main>

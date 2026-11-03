@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AstaMark } from '@/components/brand/logo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle } from 'lucide-react'
 
@@ -59,9 +60,10 @@ export default function SignInPage() {
   return (
     <div className="container py-16 flex items-center justify-center min-h-[70vh]">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Entrar</CardTitle>
-          <CardDescription>Entre na sua conta para continuar</CardDescription>
+        <CardHeader className="items-center text-center">
+          <AstaMark className="mb-2 h-12 w-12" />
+          <CardTitle className="text-2xl">Acesse sua conta</CardTitle>
+          <CardDescription>Gerencie suas reservas na AstaCar</CardDescription>
         </CardHeader>
         <CardContent>
           {cadastro && !error && (
@@ -108,7 +110,7 @@ export default function SignInPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" variant="brand" size="lg" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
             </Button>
@@ -116,7 +118,7 @@ export default function SignInPage() {
 
           <div className="mt-4 text-center text-sm">
             <span className="text-muted-foreground">Não tem uma conta? </span>
-            <Link href="/auth/signup" className="text-primary hover:underline">
+            <Link href="/auth/signup" className="text-electric hover:underline">
               Cadastre-se
             </Link>
           </div>

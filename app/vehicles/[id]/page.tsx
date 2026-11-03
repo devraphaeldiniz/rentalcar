@@ -85,11 +85,11 @@ export default async function VehicleDetailPage(props: {
       {/* No celular, a caixa de reserva vem logo depois das fotos; no desktop, fica fixa à direita. */}
       <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 lg:col-start-1">
-          <p className="text-sm text-muted-foreground">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} | {vehicle.year}</p>
-          <h1 className="text-3xl md:text-4xl font-bold">{name}</h1>
+          <p className="text-xs font-bold uppercase tracking-widest text-electric">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} · {vehicle.year}</p>
+          <h1 className="mt-1 text-3xl font-extrabold md:text-4xl">{name}</h1>
           {vehicle.total_reviews ? (
             <p className="mt-1 flex items-center gap-1 text-sm">
-              <Star className="h-4 w-4 fill-lane text-lane" aria-hidden />
+              <Star className="h-4 w-4 fill-warning text-warning" aria-hidden />
               <span className="font-medium">{Number(vehicle.average_rating).toFixed(1).replace('.', ',')}</span>
               <span className="text-muted-foreground">({vehicle.total_reviews} {vehicle.total_reviews === 1 ? 'avaliação' : 'avaliações'})</span>
             </p>
@@ -115,11 +115,11 @@ export default async function VehicleDetailPage(props: {
 
           <section className="mt-8">
             <h2 className="text-xl font-bold">Ficha do carro</h2>
-            <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+            <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {specs.filter(([, v]) => v).map(([label, value]) => (
-                <div key={label} className="border-l-2 border-primary/30 pl-3">
+                <div key={label} className="rounded-xl border bg-card px-4 py-3">
                   <dt className="text-sm text-muted-foreground">{label}</dt>
-                  <dd className="font-medium">{value}</dd>
+                  <dd className="font-semibold">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -130,7 +130,7 @@ export default async function VehicleDetailPage(props: {
               <h2 className="text-xl font-bold">Itens do carro</h2>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {vehicle.features.map((f) => (
-                  <li key={f} className="rounded-md bg-muted px-3 py-1 text-sm">{f}</li>
+                  <li key={f} className="rounded-lg border bg-muted/50 px-3 py-1.5 text-sm">{f}</li>
                 ))}
               </ul>
             </section>
