@@ -1,7 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth/authorization'
 
 export async function GET(req: NextRequest) {
+  const auth = await requireUser()
+  if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
   // TODO: Buscar sessões reais do banco
   // Por enquanto, dados mockados para demonstração
   const sessions = [
@@ -27,6 +31,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await requireUser()
+  if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
   const { sessionId } = await req.json()
   
   // TODO: Deletar sessão do banco

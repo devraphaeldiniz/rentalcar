@@ -7,12 +7,14 @@ export async function getClientIP(): Promise<string> {
   const real = headersList.get('x-real-ip')
   const cfConnecting = headersList.get('cf-connecting-ip')
   
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-  
+  // x-real-ip é definido pela plataforma (Vercel); x-forwarded-for pode
+  // trazer valores enviados pelo próprio cliente, então vem depois.
   if (real) {
     return real
+  }
+
+  if (forwarded) {
+    return forwarded.split(',')[0].trim()
   }
   
   if (cfConnecting) {

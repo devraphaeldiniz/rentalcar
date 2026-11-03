@@ -1,7 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth/authorization'
 
 export async function GET(req: NextRequest) {
+  const auth = await requireUser()
+  if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')

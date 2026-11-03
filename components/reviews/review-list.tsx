@@ -13,8 +13,7 @@ interface Review {
   comment: string
   created_at: string
   user: {
-    email: string
-    displayName?: string
+    displayName?: string | null
   }
 }
 
@@ -106,7 +105,7 @@ export function ReviewList({ vehicleId }: ReviewListProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold">
-                      {review.user.displayName || review.user.email}
+                      {review.user?.displayName || 'Cliente'}
                     </span>
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
