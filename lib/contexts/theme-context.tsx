@@ -29,7 +29,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle('dark', newTheme === 'dark')
   }
 
-  if (!mounted) return null
+  // Renderiza sempre: retornar null até montar deixava a página em branco
+  // no primeiro carregamento e quebrava a renderização no servidor.
+  void mounted
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

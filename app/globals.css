@@ -2,73 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+/*
+  Identidade RentalCar: sinalização de estrada.
+  Asfalto #1C232B, placa azul #1450B8, faixa amarela #F5B700,
+  concreto #EEF1F4, linha #D5DBE2.
+*/
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    --background: 0 0% 100%;
+    --foreground: 210 21% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 21% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 21% 14%;
+    --primary: 218 80% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 22% 95%;
+    --secondary-foreground: 210 21% 14%;
+    --muted: 210 22% 95%;
+    --muted-foreground: 211 11% 38%;
+    --accent: 210 22% 95%;
+    --accent-foreground: 210 21% 14%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 213 19% 86%;
+    --input: 213 19% 80%;
+    --ring: 218 80% 40%;
+    --radius: 0.5rem;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    --asphalt: 210 21% 14%;
+    --asphalt-foreground: 210 20% 96%;
+    --lane: 45 100% 48%;
+    --lane-foreground: 210 21% 14%;
+  }
+
+  .dark {
+    --background: 210 22% 9%;
+    --foreground: 210 20% 94%;
+    --card: 210 21% 12%;
+    --card-foreground: 210 20% 94%;
+    --popover: 210 21% 12%;
+    --popover-foreground: 210 20% 94%;
+    --primary: 216 85% 62%;
+    --primary-foreground: 210 22% 9%;
+    --secondary: 210 18% 18%;
+    --secondary-foreground: 210 20% 94%;
+    --muted: 210 18% 16%;
+    --muted-foreground: 210 12% 66%;
+    --accent: 210 18% 18%;
+    --accent-foreground: 210 20% 94%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 16% 24%;
+    --input: 210 16% 30%;
+    --ring: 216 85% 62%;
+
+    --asphalt: 210 24% 6%;
+    --asphalt-foreground: 210 20% 96%;
+    --lane: 45 100% 52%;
+    --lane-foreground: 210 24% 8%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "tnum" 1;
+  }
+
+  h1, h2, h3 {
+    font-stretch: 112%;
+    letter-spacing: -0.01em;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-}
 
-/* Dark mode styles */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+  /* Faixa tracejada de estrada, usada uma única vez na home */
+  .lane-dashes {
+    background-image: repeating-linear-gradient(
+      90deg,
+      hsl(var(--lane)) 0 28px,
+      transparent 28px 52px
+    );
   }
 }
 
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

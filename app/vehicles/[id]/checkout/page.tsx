@@ -1,390 +1,197 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { useAuth } from '@/lib/hooks/useAuth'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Calendar as CalendarIcon, ArrowLeft, CreditCard, Check, AlertTriangle, Loader2 } from 'lucide-react'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { format, differenceInDays } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import Link from 'next/link'
-import Image from 'next/image'
-import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { dateInputClass } from '@/components/client/reserve-box'
+import {
+  addDaysIso,
+  CATEGORY_LABELS,
+  formatBRL,
+  formatShortDate,
+  isIsoDate,
+  MAX_RENTAL_DAYS,
+  pluralDays,
+  rentalDays,
+  todayIso,
+} from '@/lib/rental'
 
 type Vehicle = {
   id: string
   brand: string
   model: string
   year: number
-  plate: string
-  daily_rate: number
-  images: string[]
   category: string
+  daily_rate: number
+  status: string
+  images: string[] | null
+  image_url: string | null
 }
 
 export default function CheckoutPage() {
-  const params = useParams()
-  const vehicleId = params.id as string
+  const { id } = useParams<{ id: string }>()
+  const search = useSearchParams()
   const router = useRouter()
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
-  
+
+  const today = todayIso()
+  const qsStart = search.get('retirada')
+  const qsEnd = search.get('devolucao')
+  const [start, setStart] = useState(isIsoDate(qsStart) && qsStart >= today ? qsStart : addDaysIso(today, 1))
+  const [end, setEnd] = useState(isIsoDate(qsEnd) && qsEnd > start ? qsEnd : addDaysIso(start, 3))
+
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
-  
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
+
+  // Sem login, volta para cá depois de entrar, com as mesmas datas.
+  useEffect(() => {
+    if (authLoading || isAuthenticated) return
+    const back = `/vehicles/${id}/checkout?retirada=${start}&devolucao=${end}`
+    router.replace(`/auth/signin?redirect=${encodeURIComponent(back)}`)
+  }, [authLoading, isAuthenticated, id, start, end, router])
 
   useEffect(() => {
-    if (authLoading) return
-    
-    if (!isAuthenticated) {
-      router.push('/auth/signin?redirect=/vehicles/' + vehicleId + '/checkout')
-      return
-    }
-    
-    fetchVehicle()
-  }, [isAuthenticated, vehicleId, authLoading])
+    let cancelled = false
+    fetch(`/api/vehicles/${id}`)
+      .then(async (r) => (r.ok ? r.json() : null))
+      .then((data) => { if (!cancelled) setVehicle(data) })
+      .catch(() => { if (!cancelled) setVehicle(null) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [id])
 
-  const fetchVehicle = async () => {
-    try {
-      const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
+  const days = rentalDays(start, end)
+  const validPeriod = start >= today && days >= 1 && days <= MAX_RENTAL_DAYS
+  const rate = Number(vehicle?.daily_rate ?? 0)
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `
-            query GetVehicle($id: uuid!) {
-              vehicles_by_pk(id: $id) {
-                id
-                brand
-                model
-                year
-                plate
-                daily_rate
-                images
-                category
-              }
-            }
-          `,
-          variables: { id: vehicleId }
-        }),
-      })
-
-      const result = await response.json()
-      
-      if (result.data?.vehicles_by_pk) {
-        setVehicle(result.data.vehicles_by_pk)
-      }
-    } catch (err) {
-      console.error('Erro ao buscar veículo:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const calculateDays = () => {
-    if (!startDate || !endDate) return 0
-    return differenceInDays(endDate, startDate) + 1
-  }
-
-  const calculateTotal = () => {
-    if (!vehicle) return 0
-    const days = calculateDays()
-    return days * vehicle.daily_rate
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const confirm = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!startDate || !endDate) {
-      setError('Selecione as datas de início e fim')
-      return
-    }
-
-    if (endDate <= startDate) {
-      setError('A data de devolução deve ser posterior à data de retirada')
-      return
-    }
-
-    setIsSubmitting(true)
+    if (!validPeriod) return setError('Escolha um período válido: a devolução precisa ser depois da retirada.')
+    setSubmitting(true)
     setError('')
-
     try {
-      const bookingData = {
-        vehicle_id: vehicleId,
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd'),
-        total_amount: calculateTotal(),
-      }
-      
-      console.log('=== CHECKOUT SUBMIT ===')
-      console.log('User:', user)
-      console.log('Booking data:', bookingData)
-
-      const token = localStorage.getItem('token')
-      console.log('Token exists:', !!token)
-
       const response = await fetch('/api/bookings/create', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify(bookingData),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end }),
       })
-
-      console.log('Response status:', response.status)
-      const result = await response.json()
-      console.log('Response data:', result)
-
-      if (!response.ok || result.error) {
-        setError(result.error || 'Erro ao criar reserva')
-      } else {
-        setSuccess(true)
-        setTimeout(() => {
-          router.push('/profile/bookings')
-        }, 2000)
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(result.error || 'Não foi possível confirmar a reserva. Tente novamente.')
+        return
       }
-    } catch (err: any) {
-      console.error('Erro completo:', err)
-      setError('Erro ao processar reserva: ' + err.message)
+      router.push(`/bookings/${result.booking.id}/confirmation`)
+    } catch {
+      setError('Sem conexão com o servidor. Verifique sua internet e tente novamente.')
     } finally {
-      setIsSubmitting(false)
+      setSubmitting(false)
     }
   }
 
-  if (authLoading || isLoading) {
+  if (loading || authLoading || !isAuthenticated) {
     return (
-      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
+      <main className="container flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Carregando" />
+      </main>
     )
   }
 
   if (!vehicle) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive">
-          <AlertDescription>Veículo não encontrado</AlertDescription>
-        </Alert>
-      </div>
+      <main className="container py-16">
+        <h1 className="text-2xl font-bold">Carro não encontrado</h1>
+        <Link href="/" className="mt-3 inline-block text-primary hover:underline">Ver carros disponíveis</Link>
+      </main>
     )
   }
 
-  if (success) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Card className="border-green-500">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Check className="h-6 w-6 text-green-600" />
-              <CardTitle className="text-green-600">Reserva Criada com Sucesso!</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4">Sua reserva foi criada e está aguardando aprovação.</p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Você será redirecionado para suas reservas em instantes...
-            </p>
-            <Button onClick={() => router.push('/profile/bookings')}>
-              Ver Minhas Reservas
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const days = calculateDays()
-  const total = calculateTotal()
+  const image = vehicle.images?.[0] || vehicle.image_url
+  const name = `${vehicle.brand} ${vehicle.model}`
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Link href={`/vehicles/${vehicleId}`}>
-          <Button variant="ghost" className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold mb-2">Finalizar Reserva</h1>
-        <p className="text-muted-foreground">Complete as informações para reservar o veículo</p>
-      </div>
+    <main className="container py-8">
+      <Link href={`/vehicles/${id}?retirada=${start}&devolucao=${end}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" /> Voltar para o carro
+      </Link>
+      <h1 className="mt-4 text-3xl font-bold">Revise e confirme</h1>
 
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Formulário */}
-        <div className="md:col-span-2">
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              {/* Informações do Veículo */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Veículo Selecionado</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    {vehicle.images && vehicle.images.length > 0 && (
-                      <div className="relative h-24 w-32 flex-shrink-0 rounded-lg overflow-hidden">
-                        <Image
-                          src={vehicle.images[0]}
-                          alt={`${vehicle.brand} ${vehicle.model}`}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="font-semibold text-lg">{vehicle.brand} {vehicle.model}</h3>
-                      <p className="text-sm text-muted-foreground">{vehicle.year}</p>
-                      <p className="text-sm text-muted-foreground">Placa: {vehicle.plate}</p>
-                      <p className="font-semibold mt-2">R$ {vehicle.daily_rate}/dia</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Seleção de Datas */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Período da Locação</CardTitle>
-                  <CardDescription>Selecione as datas de retirada e devolução</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Data de Retirada</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !startDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={setStartDate}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div>
-                      <Label>Data de Devolução</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !endDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={setEndDate}
-                            disabled={(date) => !startDate || date <= startDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-
-                  {days > 0 && (
-                    <Alert>
-                      <AlertDescription>
-                        <strong>{days}</strong> {days === 1 ? 'dia' : 'dias'} de locação
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Botão de Confirmar */}
-              <Button 
-                type="submit" 
-                className="w-full" 
-                size="lg"
-                disabled={!startDate || !endDate || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Confirmar Reserva
-                  </>
-                )}
-              </Button>
+      <form onSubmit={confirm} className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-8 content-start">
+          <section className="flex gap-4 rounded-lg border p-4">
+            <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {image && <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
             </div>
-          </form>
+            <div>
+              <p className="text-sm text-muted-foreground">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} | {vehicle.year}</p>
+              <p className="text-xl font-bold">{name}</p>
+              <p className="text-sm text-muted-foreground">{formatBRL(rate)} por diária</p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold">Período</h2>
+            <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="co-retirada">Retirada</Label>
+                <input id="co-retirada" type="date" min={today} value={start} className={dateInputClass}
+                  onChange={(e) => { setStart(e.target.value); if (e.target.value && end <= e.target.value) setEnd(addDaysIso(e.target.value, 1)) }} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="co-devolucao">Devolução</Label>
+                <input id="co-devolucao" type="date" min={addDaysIso(start || today, 1)} value={end} className={dateInputClass}
+                  onChange={(e) => setEnd(e.target.value)} />
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold">Quem vai retirar</h2>
+            <dl className="mt-3 grid max-w-md gap-2 text-sm">
+              <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Nome</dt><dd className="font-medium">{user?.displayName || 'Não informado'}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-muted-foreground">E-mail</dt><dd className="font-medium">{user?.email}</dd></div>
+            </dl>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Leve documento com foto e CNH válida na retirada.{' '}
+              <Link href="/profile" className="text-primary hover:underline">Atualizar meus dados</Link>
+            </p>
+          </section>
         </div>
 
-        {/* Resumo */}
-        <div>
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Resumo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Diária</span>
-                <span className="font-medium">R$ {vehicle.daily_rate.toLocaleString('pt-BR')}</span>
+        <aside className="lg:sticky lg:top-24 lg:self-start rounded-lg border bg-card p-5">
+          <h2 className="text-lg font-bold">Resumo</h2>
+          {validPeriod ? (
+            <>
+              <p className="mt-1 text-sm text-muted-foreground">{formatShortDate(start)} a {formatShortDate(end)}</p>
+              <div className="mt-4 flex justify-between text-sm">
+                <span>{pluralDays(days)} x {formatBRL(rate)}</span>
+                <span>{formatBRL(rate * days)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Quantidade</span>
-                <span className="font-medium">{days > 0 ? days : '-'} {days === 1 ? 'dia' : 'dias'}</span>
+              <div className="mt-4 flex items-end justify-between border-t pt-4">
+                <span className="font-medium">Total</span>
+                <span className="text-2xl font-bold"><span className="bg-lane/30 px-1 -mx-1 rounded-sm">{formatBRL(rate * days)}</span></span>
               </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between">
-                  <span className="font-semibold">Total</span>
-                  <span className="text-2xl font-bold text-green-600">
-                    R$ {total.toLocaleString('pt-BR')}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">Escolha datas válidas para ver o total.</p>
+          )}
+
+          {error && <p role="alert" className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+
+          <Button type="submit" size="lg" className="mt-5 w-full" disabled={!validPeriod || submitting}>
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submitting ? 'Confirmando...' : 'Confirmar reserva'}
+          </Button>
+          <p className="mt-3 text-xs text-muted-foreground">Pagamento na retirada. Você pode acompanhar a reserva em Minhas reservas.</p>
+        </aside>
+      </form>
+    </main>
   )
 }

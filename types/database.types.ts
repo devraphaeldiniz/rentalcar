@@ -14,12 +14,13 @@ export type Vehicle = {
   model: string
   year: number
   plate: string
-  category: 'economy' | 'standard' | 'suv' | 'luxury'
+  category: 'economy' | 'standard' | 'suv' | 'minivan' | 'pickup' | 'electric' | 'luxury' | 'sports'
   daily_rate: number
   status: 'available' | 'rented' | 'maintenance'
   image_url: string | null
   images: string[]
   features: string[]
+  image_credits?: { author: string; license: string; source: string }[]
   description: string | null
   transmission: string | null
   fuel_type: string | null

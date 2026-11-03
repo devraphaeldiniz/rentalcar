@@ -87,9 +87,9 @@ npm install
 2. Copie `.env.example` para `.env.local` e preencha subdomínio, região e o admin secret do Hasura.
 3. Crie todo o banco (tabelas, gatilhos, relações e permissões) com um comando:
 ```bash
-npm run db:setup -- --seed
+npm run db:setup
 ```
-O `--seed` cadastra quatro veículos de exemplo. O comando pode ser executado de novo sem duplicar nada: as migrações aplicadas ficam registradas em `schema_migrations`.
+As migrações criam as tabelas e cadastram um catálogo de 32 carros em 8 categorias, com fotos do Wikimedia Commons sob licença Creative Commons (créditos em `/creditos`). O comando pode ser executado de novo sem duplicar nada: as migrações aplicadas ficam registradas em `schema_migrations`.
 
 4. Depois de criar sua conta pelo site, promova-a a administrador:
 ```bash
