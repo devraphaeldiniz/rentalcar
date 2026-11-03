@@ -11,9 +11,6 @@ export async function PATCH(
     const data = await req.json()
     const { id: userId } = await params
 
-    console.log('=== UPDATE PROFILE ===')
-    console.log('User ID:', userId)
-    console.log('Data:', data)
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
@@ -49,7 +46,6 @@ export async function PATCH(
     })
 
     const result = await response.json()
-    console.log('GraphQL Response:', JSON.stringify(result, null, 2))
 
     if (result.errors) {
       console.error('GraphQL errors:', result.errors)
@@ -59,7 +55,6 @@ export async function PATCH(
       )
     }
 
-    console.log('✅ Profile updated successfully!')
 
     return NextResponse.json({ 
       success: true, 

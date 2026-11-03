@@ -48,13 +48,11 @@ async function getVehicle(id: string) {
   return v && v.status !== 'maintenance' ? v : null
 }
 
-export default async function VehicleDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string }
-  searchParams: { retirada?: string; devolucao?: string; categoria?: string }
+export default async function VehicleDetailPage(props: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ retirada?: string; devolucao?: string; categoria?: string }>
 }) {
+  const [params, searchParams] = await Promise.all([props.params, props.searchParams])
   const vehicle = await getVehicle(params.id).catch(() => null)
   if (!vehicle) notFound()
 

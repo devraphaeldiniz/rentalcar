@@ -1,19 +1,16 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/authorization'
+import { pickVehicleFields } from '@/lib/vehicle-fields'
 
 export async function POST(req: NextRequest) {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await req.json()
     
-    console.log('=== API CREATE VEHICLE ===')
-    console.log('Received data:', data)
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
-    console.log('GraphQL URL:', url)
-    console.log('Has Admin Secret:', !!process.env.NHOST_ADMIN_SECRET)
 
     const response = await fetch(url, {
       method: 'POST',
@@ -32,7 +29,7 @@ export async function POST(req: NextRequest) {
           }
         `,
         variables: {
-          object: data
+          object: pickVehicleFields(data)
         }
       }),
     })

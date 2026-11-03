@@ -14,7 +14,8 @@ type Booking = {
   vehicle: { brand: string; model: string; images: string[] | null; image_url: string | null } | null
 }
 
-export default async function BookingConfirmationPage({ params }: { params: { id: string } }) {
+export default async function BookingConfirmationPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
   const user = await requireUser()
   if (!user) notFound()
 

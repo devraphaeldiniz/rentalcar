@@ -135,9 +135,9 @@ const SELECT_PERMS = [
   }],
 ]
 
-const UPDATE_PERMS = [
-  ['profiles', 'user', { columns: ['full_name', 'phone', 'cpf'], filter: { id: { _eq: 'X-Hasura-User-Id' } }, check: {} }],
-]
+// Nenhuma escrita direta pelo navegador: alterações de perfil passam pela
+// rota /api/profile, que valida nome, telefone e CPF.
+const UPDATE_PERMS = []
 
 async function applyMetadata() {
   console.log('\n→ Metadata (tabelas, relações e permissões)')

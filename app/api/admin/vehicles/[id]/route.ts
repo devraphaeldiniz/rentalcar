@@ -1,12 +1,10 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
+import { EDITABLE_VEHICLE_FIELDS as EDITABLE, pickVehicleFields } from '@/lib/vehicle-fields'
 
-// Campos que o painel pode alterar; o resto (id, notas, datas) fica protegido.
-const EDITABLE = ['brand', 'model', 'year', 'plate', 'category', 'daily_rate', 'status', 'description', 'transmission',
-  'fuel_type', 'passengers', 'doors', 'trunk_capacity', 'air_conditioning', 'color', 'features', 'images', 'image_url'] as const
-
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const params = await ctx.params
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await adminGraphql<{ vehicles_by_pk: unknown }>(
@@ -29,7 +27,7 @@ export async function PATCH(
   try {
     const body = await req.json()
     const { id: vehicleId } = await params
-    const data = Object.fromEntries(Object.entries(body ?? {}).filter(([k]) => (EDITABLE as readonly string[]).includes(k)))
+    const data = pickVehicleFields(body)
     if (data.daily_rate !== undefined && !(Number(data.daily_rate) > 0)) {
       return NextResponse.json({ error: 'A diária precisa ser maior que zero.' }, { status: 400 })
     }

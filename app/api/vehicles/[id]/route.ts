@@ -5,7 +5,8 @@ import { adminGraphql } from '@/lib/auth/authorization'
 
 // Detalhe público de um veículo (a página /vehicles/[id] chamava esta rota,
 // que não existia). Devolve só campos de catálogo; veículos em manutenção ficam ocultos.
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const params = await ctx.params
   if (!z.string().uuid().safeParse(params.id).success) {
     return NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 })
   }

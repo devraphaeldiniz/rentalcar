@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { safeRedirect } from '@/lib/safe-redirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,8 +17,7 @@ export default function SignUpPage() {
   const { isAuthenticated: alreadyIn } = useAuth()
   useEffect(() => {
     if (!alreadyIn) return
-    const redirect = new URLSearchParams(window.location.search).get('redirect')
-    window.location.replace(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+    window.location.replace(safeRedirect(new URLSearchParams(window.location.search).get('redirect')))
   }, [alreadyIn])
   const router = useRouter()
   const [formData, setFormData] = useState({
