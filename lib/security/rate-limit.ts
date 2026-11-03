@@ -20,7 +20,7 @@ export async function checkLoginRateLimit(email: string, ip: string): Promise<Ra
       byEmail: { aggregate: { count: number } }
       byIp: { aggregate: { count: number } }
     }>(
-      `query LoginFailures($email: String!, $ip: String!, $since: timestamptz!) {
+      `query LoginFailures($email: String!, $ip: inet!, $since: timestamptz!) {
         byEmail: login_attempts_aggregate(where: { email: { _eq: $email }, success: { _eq: false }, created_at: { _gte: $since } }) {
           aggregate { count }
         }

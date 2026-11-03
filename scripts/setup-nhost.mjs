@@ -70,6 +70,17 @@ async function migrate() {
     ((await sql('SELECT name FROM public.schema_migrations')).result ?? []).slice(1).map((r) => r[0]),
   )
 
+  // Banco criado antes deste script (sem registro de migrações): a 001 já
+  // está lá, então só é registrada. As demais são idempotentes e rodam.
+  if (applied.size === 0) {
+    const exists = await sql("SELECT to_regclass('public.profiles') IS NOT NULL")
+    if (exists.result?.[1]?.[0] === 't') {
+      await sql("INSERT INTO public.schema_migrations (name) VALUES ('001_initial.sql') ON CONFLICT DO NOTHING")
+      applied.add('001_initial.sql')
+      console.log('  ✓ 001_initial.sql (banco existente, registrada sem executar)')
+    }
+  }
+
   const dir = join(root, 'nhost', 'migrations')
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
     if (applied.has(file)) {
@@ -95,7 +106,7 @@ const OBJECT_RELS = [
   ['reviews', 'vehicle', { foreign_key_constraint_on: 'vehicle_id' }],
   ['reviews', 'booking', { foreign_key_constraint_on: 'booking_id' }],
   ['reviews', 'user', { manual_configuration: { remote_table: AUTH_USERS, column_mapping: { user_id: 'id' } } }],
-  ['audit_logs', 'profile', { foreign_key_constraint_on: 'user_id' }],
+  ['audit_logs', 'user', { manual_configuration: { remote_table: AUTH_USERS, column_mapping: { user_id: 'id' } } }],
 ]
 
 const ARRAY_RELS = [
@@ -106,7 +117,7 @@ const ARRAY_RELS = [
 
 const VEHICLE_PUBLIC_COLUMNS = [
   'id', 'brand', 'model', 'year', 'plate', 'color', 'category', 'daily_rate', 'status',
-  'description', 'transmission', 'fuel_type', 'passengers', 'doors', 'trunk_capacity',
+  'description', 'transmission', 'fuel_type', 'passengers', 'doors', 'air_conditioning', 'trunk_capacity',
   'features', 'images', 'image_url', 'average_rating', 'total_reviews', 'created_at',
 ]
 

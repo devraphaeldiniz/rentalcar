@@ -6,6 +6,9 @@
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS blocked_reason TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0;
 
 -- Todo usuário do Nhost Auth ganha um perfil automaticamente.
 -- Sem isso, reservas (FK para profiles) e o papel de admin não funcionam.
@@ -62,6 +65,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------- vehicles ----------
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS color TEXT;
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS air_conditioning BOOLEAN;
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS transmission TEXT;
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS fuel_type TEXT;
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS passengers INTEGER;
@@ -83,7 +87,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
   vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
   comment TEXT CHECK (char_length(comment) <= 1000),
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
@@ -93,8 +97,8 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 CREATE INDEX IF NOT EXISTS idx_reviews_vehicle_status ON reviews(vehicle_id, status);
 
-DROP TRIGGER IF EXISTS update_reviews_updated_at ON reviews;
-CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON reviews
+DROP TRIGGER IF EXISTS set_reviews_updated_at ON reviews;
+CREATE TRIGGER set_reviews_updated_at BEFORE UPDATE ON reviews
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- Nota média e total do veículo calculados pelo banco, só com avaliações aprovadas.
@@ -118,14 +122,19 @@ CREATE TRIGGER reviews_refresh_vehicle_rating
   AFTER INSERT OR UPDATE OF status, rating OR DELETE ON reviews
   FOR EACH ROW EXECUTE FUNCTION public.refresh_vehicle_rating();
 
+-- Recalcula uma vez a nota de todos os veículos com os dados atuais.
+UPDATE vehicles v SET
+  average_rating = COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 2) FROM reviews r WHERE r.vehicle_id = v.id AND r.status = 'approved'), 0),
+  total_reviews = (SELECT COUNT(*) FROM reviews r WHERE r.vehicle_id = v.id AND r.status = 'approved');
+
 -- ---------- audit_logs ----------
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   resource TEXT,
-  resource_id TEXT,
-  ip_address TEXT,
+  resource_id UUID,
+  ip_address INET,
   user_agent TEXT,
   metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -137,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC)
 CREATE TABLE IF NOT EXISTS login_attempts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   email TEXT NOT NULL,
-  ip_address TEXT,
+  ip_address INET NOT NULL,
   success BOOLEAN NOT NULL,
   failure_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

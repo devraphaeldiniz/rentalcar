@@ -24,7 +24,7 @@ export async function GET() {
         resource_id: string | null
         metadata: unknown
         created_at: string
-        profile: { email: string } | null
+        user: { email: string | null } | null
       }[]
     }>(
       `query SecurityData($since: timestamptz!) {
@@ -41,7 +41,7 @@ export async function GET() {
         login_attempts(order_by: { created_at: desc }, limit: 50) { id email ip_address success created_at }
         audit_logs(order_by: { created_at: desc }, limit: 100) {
           id action resource resource_id metadata created_at
-          profile { email }
+          user { email }
         }
       }`,
       { since },
@@ -56,7 +56,7 @@ export async function GET() {
       loginAttempts: data.login_attempts,
       auditLogs: data.audit_logs.map((log) => ({
         id: log.id,
-        user_email: log.profile?.email ?? '—',
+        user_email: log.user?.email ?? '—',
         action: log.action,
         details: [log.resource, log.resource_id].filter(Boolean).join(' ') || (log.metadata ? JSON.stringify(log.metadata) : ''),
         created_at: log.created_at,
