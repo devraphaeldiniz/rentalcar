@@ -1,6 +1,6 @@
 import { adminGraphql } from '@/lib/auth/authorization'
 
-export const metadata = { title: 'Créditos das fotos | RentalCar' }
+export const metadata = { title: 'Créditos das fotos' }
 
 type Row = {
   id: string

@@ -8,9 +8,10 @@ import { safeRedirect } from '@/lib/safe-redirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AstaMark } from '@/components/brand/logo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { nhost } from '@/lib/nhost/client'
-import { Shield, AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle } from 'lucide-react'
 
 export default function SignUpPage() {
   // Quem já está logado não precisa ver esta tela.
@@ -70,18 +71,11 @@ export default function SignUpPage() {
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-md">
-      <div className="text-center mb-8">
-        <Shield className="h-12 w-12 mx-auto mb-4 text-primary" />
-        <h1 className="text-3xl font-bold">Criar Conta Segura</h1>
-        <p className="text-muted-foreground mt-2">
-          Cadastre-se com proteção total
-        </p>
-      </div>
-
       <Card>
-        <CardHeader>
-          <CardTitle>Cadastro</CardTitle>
-          <CardDescription>Crie sua conta em segundos</CardDescription>
+        <CardHeader className="items-center text-center">
+          <AstaMark className="mb-2 h-12 w-12" />
+          <CardTitle className="text-2xl">Crie sua conta AstaCar</CardTitle>
+          <CardDescription>Reserve, acompanhe e avalie seus aluguéis</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -165,17 +159,13 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
-              {isLoading ? 'Criando conta...' : 'Criar conta segura'}
+            <Button type="submit" variant="brand" size="lg" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Criando conta...' : 'Criar minha conta'}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
               Já tem conta?{' '}
-              <Link href="/auth/signin" className="text-primary hover:underline">
+              <Link href="/auth/signin" className="text-electric hover:underline">
                 Entrar
               </Link>
             </p>

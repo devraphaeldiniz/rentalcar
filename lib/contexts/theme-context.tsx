@@ -11,27 +11,21 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
+// O tema escuro é o padrão da marca. A classe já vem aplicada pelo script
+// do layout, antes da primeira pintura; aqui só sincronizamos o estado.
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
-  const [mounted, setMounted] = useState(false)
+  const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
-    setMounted(true)
-    const savedTheme = localStorage.getItem('theme') as Theme || 'light'
-    setTheme(savedTheme)
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+    setTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light')
   }, [])
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-    document.documentElement.classList.toggle('dark', newTheme === 'dark')
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    try { localStorage.setItem('theme', next) } catch {}
+    document.documentElement.classList.toggle('dark', next === 'dark')
   }
-
-  // Renderiza sempre: retornar null até montar deixava a página em branco
-  // no primeiro carregamento e quebrava a renderização no servidor.
-  void mounted
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

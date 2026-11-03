@@ -21,8 +21,8 @@ type Booking = {
 }
 
 const toneClass: Record<string, string> = {
-  wait: 'bg-lane/25 text-foreground',
-  ok: 'bg-primary/10 text-primary',
+  wait: 'bg-warning/15 text-warning',
+  ok: 'bg-success/15 text-success',
   done: 'bg-muted text-foreground',
   off: 'bg-muted text-muted-foreground line-through',
 }
@@ -112,10 +112,10 @@ export default function MyBookingsPage() {
                       <div>
                         <p className="text-lg font-bold">
                           {b.vehicle ? (
-                            <Link href={`/vehicles/${b.vehicle.id}`} className="hover:text-primary">{b.vehicle.brand} {b.vehicle.model}</Link>
+                            <Link href={`/vehicles/${b.vehicle.id}`} className="hover:text-electric">{b.vehicle.brand} {b.vehicle.model}</Link>
                           ) : 'Carro removido da frota'}
                         </p>
-                        <p className="text-sm text-muted-foreground">Código {b.id.slice(0, 8).toUpperCase()}</p>
+                        <p className="text-sm text-muted-foreground">Código ASTA-{b.id.slice(0, 8).toUpperCase()}</p>
                       </div>
                       <span className={`rounded-md px-2 py-1 text-sm font-medium ${toneClass[status.tone]}`}>{status.label}</span>
                     </div>

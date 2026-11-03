@@ -14,7 +14,7 @@ type Profile = { full_name: string | null; phone: string | null; cpf: string | n
 function Notice({ kind, text }: { kind: 'ok' | 'error'; text: string }) {
   return (
     <p role={kind === 'error' ? 'alert' : 'status'}
-      className={`rounded-md p-3 text-sm ${kind === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
+      className={`rounded-md p-3 text-sm ${kind === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
       {text}
     </p>
   )
@@ -87,7 +87,7 @@ export default function ProfilePage() {
       <h1 className="text-3xl font-bold">Meus dados</h1>
       <p className="mt-1 text-muted-foreground">
         {profile.email}
-        {profile.role === 'admin' && <> | <Link href="/admin" className="text-primary hover:underline">Painel administrativo</Link></>}
+        {profile.role === 'admin' && <> | <Link href="/admin" className="text-electric hover:underline">Painel administrativo</Link></>}
       </p>
 
       <form onSubmit={save} className="mt-8 grid gap-4 rounded-lg border p-5">

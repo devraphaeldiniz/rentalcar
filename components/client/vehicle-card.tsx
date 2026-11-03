@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { Users, Cog, Snowflake, Fuel } from 'lucide-react'
+import { ArrowRight, Users, Cog, Fuel } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CATEGORY_LABELS, formatBRL, pluralDays, type DateRange } from '@/lib/rental'
+import { categoryIcon } from '@/lib/category-icons'
 
 export type CatalogVehicle = {
   id: string
@@ -32,72 +33,87 @@ export function VehicleCard({ vehicle, range, unavailable = false, category }: P
   const rate = Number(vehicle.daily_rate)
   const query = range ? `?retirada=${range.start}&devolucao=${range.end}` : ''
   const detailQuery = category ? `${query ? `${query}&` : '?'}categoria=${category}` : query
+  const detailHref = `/vehicles/${vehicle.id}${detailQuery}`
+  const CategoryIcon = categoryIcon(vehicle.category)
 
   const specs = [
     vehicle.passengers ? { icon: Users, label: `${vehicle.passengers} lugares` } : null,
     vehicle.transmission ? { icon: Cog, label: vehicle.transmission } : null,
-    vehicle.air_conditioning !== false ? { icon: Snowflake, label: 'Ar-condicionado' } : null,
     vehicle.fuel_type ? { icon: Fuel, label: vehicle.fuel_type } : null,
   ].filter(Boolean) as { icon: typeof Users; label: string }[]
 
   return (
-    <article className={`flex flex-col overflow-hidden rounded-lg border bg-card ${unavailable ? 'opacity-60' : ''}`}>
-      <Link href={`/vehicles/${vehicle.id}${detailQuery}`} className="relative block overflow-hidden bg-muted aspect-[16/10]" tabIndex={-1} aria-hidden>
+    <article
+      className={`group flex flex-col overflow-hidden rounded-2xl border bg-card transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-electric/40 hover:shadow-xl hover:shadow-electric/5 ${
+        unavailable ? 'opacity-60' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3 p-5 pb-0">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-[0.6875rem] font-bold uppercase tracking-wider text-electric">
+            <CategoryIcon className="h-3.5 w-3.5" aria-hidden />
+            {CATEGORY_LABELS[vehicle.category] ?? vehicle.category}
+          </p>
+          <h3 className="mt-1 truncate text-xl font-bold">
+            <Link href={detailHref} className="transition-colors hover:text-electric">{name}</Link>
+          </h3>
+          <p className="text-sm text-muted-foreground">Ano {vehicle.year}{vehicle.air_conditioning !== false ? ' · Ar-condicionado' : ''}</p>
+        </div>
+        {unavailable && (
+          <span className="shrink-0 rounded-lg border border-warning/30 bg-warning/10 px-2 py-1 text-xs font-semibold text-warning">
+            Reservado
+          </span>
+        )}
+      </div>
+
+      <Link href={detailHref} className="relative mx-5 mt-4 block overflow-hidden rounded-xl bg-muted aspect-[16/10]" tabIndex={-1} aria-hidden>
         {image ? (
-          <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+          <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-            Foto em breve
-          </div>
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Foto em breve</div>
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col gap-4 p-5">
-        <div>
-          <p className="text-sm text-muted-foreground">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} | {vehicle.year}</p>
-          <h3 className="text-xl font-bold">
-            <Link href={`/vehicles/${vehicle.id}${detailQuery}`} className="hover:text-primary">{name}</Link>
-          </h3>
-        </div>
+      {specs.length > 0 && (
+        <ul className="mx-5 mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+          {specs.map(({ icon: Icon, label }) => (
+            <li key={label} className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border bg-muted/50 px-2 py-1.5">
+              <Icon className="h-3.5 w-3.5 shrink-0 text-electric" aria-hidden />
+              <span className="truncate">{label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
-        {specs.length > 0 && (
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            {specs.map(({ icon: Icon, label }) => (
-              <li key={label} className="flex items-center gap-1.5">
-                <Icon className="h-4 w-4" aria-hidden />
-                {label}
-              </li>
-            ))}
-          </ul>
+      <div className="mt-5 flex flex-1 items-end justify-between gap-4 border-t bg-muted/30 p-5">
+        {range ? (
+          <div>
+            <p className="text-xs text-muted-foreground">{pluralDays(range.days)} · {formatBRL(rate)}/dia</p>
+            <p className="tabular text-2xl font-black">{formatBRL(rate * range.days)}</p>
+            <p className="text-xs text-muted-foreground">total do período</p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-xs text-muted-foreground">Diária a partir de</p>
+            <p className="tabular text-2xl font-black">
+              {formatBRL(rate)}<span className="text-xs font-medium text-muted-foreground">/dia</span>
+            </p>
+          </div>
         )}
 
-        <div className="mt-auto flex items-end justify-between gap-4 border-t pt-4">
-          {range ? (
-            <div>
-              <p className="text-sm text-muted-foreground">{pluralDays(range.days)} de {formatBRL(rate)}</p>
-              <p className="text-2xl font-bold">
-                <span className="bg-lane/30 px-1 -mx-1 rounded-sm">{formatBRL(rate * range.days)}</span>
-              </p>
-            </div>
-          ) : (
-            <div>
-              <p className="text-2xl font-bold">{formatBRL(rate)}</p>
-              <p className="text-sm text-muted-foreground">por diária</p>
-            </div>
-          )}
-
-          {unavailable ? (
-            <p className="text-sm font-medium text-muted-foreground text-right">Reservado nessas datas</p>
-          ) : range ? (
-            <Button asChild>
-              <Link href={`/vehicles/${vehicle.id}/checkout${query}`}>Reservar</Link>
-            </Button>
-          ) : (
-            <Button asChild variant="outline">
-              <Link href={`/vehicles/${vehicle.id}`}>Ver detalhes</Link>
-            </Button>
-          )}
-        </div>
+        {unavailable ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={detailHref}>Outras datas</Link>
+          </Button>
+        ) : range ? (
+          <Button asChild>
+            <Link href={`/vehicles/${vehicle.id}/checkout${query}`}>Reservar <ArrowRight className="h-4 w-4" /></Link>
+          </Button>
+        ) : (
+          <Button asChild variant="outline">
+            <Link href={detailHref}>Ver detalhes</Link>
+          </Button>
+        )}
       </div>
     </article>
   )

@@ -24,7 +24,7 @@ export async function GET() {
   try {
     // Aqui você buscaria as configurações do banco de dados
     const settings = {
-      siteName: 'RentalCar',
+      siteName: 'AstaCar',
       siteDescription: 'Sistema de aluguel de veículos',
       contactEmail: 'contato@rentalcar.com',
       supportEmail: 'suporte@rentalcar.com',

@@ -1,151 +1,67 @@
-'use client'
-
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
-import { Car, Shield, Clock, Users, Star, Award } from 'lucide-react'
+import { CalendarRange, Database, LockKeyhole, ReceiptText, ShieldCheck, Smartphone } from 'lucide-react'
+import { PageHero } from '@/components/layout/page-hero'
+
+export const metadata = { title: 'Sobre' }
+
+const PILLARS = [
+  { icon: ReceiptText, title: 'Preço sem surpresa', text: 'O valor total do período aparece antes da reserva e é calculado no servidor, não no navegador.' },
+  { icon: CalendarRange, title: 'Agenda sem conflito', text: 'O banco impede duas reservas do mesmo carro em datas sobrepostas, mesmo com cliques simultâneos.' },
+  { icon: ShieldCheck, title: 'Conta protegida', text: 'Sessão em cookie seguro, limite de tentativas de login e registro das ações importantes.' },
+  { icon: Smartphone, title: 'Feito para o celular', text: 'Busca, reserva e acompanhamento funcionam em qualquer tela, no tema claro ou escuro.' },
+  { icon: Database, title: 'Gestão completa', text: 'Painel administrativo com frota, reservas, usuários, mensagens e relatórios.' },
+  { icon: LockKeyhole, title: 'Dados mínimos', text: 'Pedimos só o necessário para a reserva, e você pode editar seus dados quando quiser.' },
+]
 
 export default function SobrePage() {
-  const features = [
-    {
-      icon: Car,
-      title: 'Frota Moderna',
-      description: 'Veículos novos e bem mantidos para sua segurança e conforto'
-    },
-    {
-      icon: Shield,
-      title: 'Segurança Total',
-      description: 'Todos os veículos com seguro completo e assistência 24h'
-    },
-    {
-      icon: Clock,
-      title: 'Disponibilidade',
-      description: 'Atendimento e suporte disponível todos os dias da semana'
-    },
-    {
-      icon: Users,
-      title: 'Atendimento Personalizado',
-      description: 'Equipe dedicada para atender suas necessidades'
-    },
-    {
-      icon: Star,
-      title: 'Qualidade Garantida',
-      description: 'Avaliações positivas de centenas de clientes satisfeitos'
-    },
-    {
-      icon: Award,
-      title: 'Experiência',
-      description: 'Anos de experiência no mercado de locação de veículos'
-    }
-  ]
-
   return (
-    <div className="min-h-screen">
-      <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-20">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Sobre a RentalCar
-            </h1>
-            <p className="text-xl text-white/90">
-              Conectando você ao veículo ideal para cada momento da sua vida
-            </p>
-          </div>
-        </div>
-      </section>
+    <main>
+      <PageHero
+        eyebrow="Sobre a AstaCar"
+        title="Aluguel de carros simples, transparente e digital"
+        subtitle="A AstaCar é um projeto de portfólio que reproduz a experiência de uma locadora moderna, do catálogo ao painel de gestão."
+      />
 
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-8 text-center">Nossa História</h2>
-            <div className="space-y-4">
-              <p className="text-lg text-muted-foreground">
-                A RentalCar nasceu com um objetivo claro: transformar a experiência de aluguel de veículos,
-                tornando-a mais simples, transparente e acessível para todos.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                Desde o início, investimos em tecnologia de ponta e em uma frota diversificada para atender
-                às mais variadas necessidades - desde viagens de negócios até aventuras em família.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                Hoje, somos referência no mercado, com milhares de clientes satisfeitos e uma equipe
-                apaixonada por proporcionar a melhor experiência em mobilidade.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-12 text-center">Nossos Diferenciais</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {features.map((feature, index) => {
-              const Icon = feature.icon
-              return (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="mb-4 p-3 bg-primary/10 rounded-full">
-                        <Icon className="h-8 w-8 text-primary" />
-                      </div>
-                      <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                      <p className="text-muted-foreground">{feature.description}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-center">Missão</h3>
-                <p className="text-muted-foreground text-center">
-                  Proporcionar mobilidade de qualidade, com segurança e transparência,
-                  facilitando a vida dos nossos clientes.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-center">Visão</h3>
-                <p className="text-muted-foreground text-center">
-                  Ser a plataforma de locação de veículos mais confiável e inovadora do mercado.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-2xl font-bold mb-4 text-center">Valores</h3>
-                <p className="text-muted-foreground text-center">
-                  Transparência, qualidade, compromisso com o cliente e inovação constante.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 bg-primary text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Pronto para começar?</h2>
-          <p className="text-xl mb-8 text-white/90">
-            Encontre o veículo perfeito para você
+      <section className="container py-16">
+        <div className="mx-auto max-w-3xl space-y-4 text-lg text-muted-foreground">
+          <p>
+            A ideia é simples: quem aluga um carro quer saber quanto vai pagar e se o carro estará disponível. Por isso a AstaCar
+            mostra o valor total do período em cada modelo e só deixa reservar o que está livre nas datas escolhidas.
           </p>
-          
-            <Link
-              href="/"
-              className="inline-block bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-white/90 transition-colors"
-            >
-              Ver Veículos Disponíveis
-            </Link>
+          <p>
+            Por trás da vitrine existe um sistema completo: contas de cliente e de administrador, reservas com cancelamento e
+            avaliação, gestão da frota e trilha de auditoria. As reservas são de demonstração e não geram cobrança.
+          </p>
         </div>
       </section>
-    </div>
+
+      <section className="border-y bg-muted/40">
+        <div className="container py-16">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-electric">Como o sistema funciona</p>
+            <h2 className="mt-1 text-3xl font-extrabold">Os pilares da AstaCar</h2>
+          </div>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {PILLARS.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="rounded-2xl border bg-card p-6">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-electric/25 bg-electric/10 text-electric">
+                  <Icon className="h-6 w-6" aria-hidden />
+                </span>
+                <h3 className="mt-4 text-lg font-bold">{title}</h3>
+                <p className="mt-1.5 text-sm text-muted-foreground">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="container py-16 text-center">
+        <h2 className="text-3xl font-extrabold">Pronto para pegar a estrada?</h2>
+        <p className="mt-2 text-muted-foreground">Escolha as datas e veja o valor total de cada carro.</p>
+        <Link href="/" className="bg-brand-gradient mt-8 inline-flex h-12 items-center rounded-lg px-8 font-semibold text-white shadow-lg shadow-primary/25 hover:brightness-110">
+          Ver carros disponíveis
+        </Link>
+      </section>
+    </main>
   )
 }

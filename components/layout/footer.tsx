@@ -2,31 +2,66 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Logo } from '@/components/brand/logo'
+
+const COLUMNS: { title: string; links: [string, string][] }[] = [
+  {
+    title: 'Aluguel',
+    links: [
+      ['/', 'Carros disponíveis'],
+      ['/#carros', 'Categorias da frota'],
+      ['/profile/bookings', 'Minhas reservas'],
+    ],
+  },
+  {
+    title: 'AstaCar',
+    links: [
+      ['/sobre', 'Sobre o projeto'],
+      ['/creditos', 'Créditos das fotos'],
+    ],
+  },
+  {
+    title: 'Atendimento',
+    links: [
+      ['/contato', 'Fale com a gente'],
+      ['/profile', 'Meus dados'],
+    ],
+  },
+]
 
 export function Footer() {
   const pathname = usePathname()
   if (pathname?.startsWith('/admin')) return null
 
   return (
-    <footer className="bg-asphalt text-asphalt-foreground mt-16">
-
-      <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
-        <div>
-          <p className="text-lg font-bold" style={{ fontStretch: '112%' }}>RentalCar</p>
-          <p className="mt-2 text-asphalt-foreground/70 max-w-xs">
-            Aluguel de carros com reserva online e valor total antes de confirmar.
+    <footer className="mt-20 border-t border-white/5 bg-asphalt text-asphalt-foreground">
+      <div className="container grid gap-10 py-14 text-sm md:grid-cols-2 lg:grid-cols-5">
+        <div className="lg:col-span-2">
+          <Logo onDark />
+          <p className="mt-4 max-w-sm text-asphalt-foreground/65">
+            Aluguel de carros com reserva online e o valor total do período antes de você confirmar.
           </p>
         </div>
-        <nav className="flex flex-col gap-2" aria-label="Rodapé">
-          <Link href="/" className="hover:text-lane">Carros disponíveis</Link>
-          <Link href="/profile/bookings" className="hover:text-lane">Minhas reservas</Link>
-          <Link href="/sobre" className="hover:text-lane">Sobre</Link>
-          <Link href="/contato" className="hover:text-lane">Contato</Link>
-          <Link href="/creditos" className="hover:text-lane">Créditos das fotos</Link>
-        </nav>
-        <p className="text-asphalt-foreground/60 md:text-right">
-          Projeto de portfólio. Reservas não geram cobrança.
-        </p>
+        {COLUMNS.map((col) => (
+          <nav key={col.title} aria-label={col.title}>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-white">{col.title}</h2>
+            <ul className="mt-4 space-y-2.5">
+              {col.links.map(([href, label]) => (
+                <li key={href}>
+                  <Link href={href} className="text-asphalt-foreground/65 transition-colors hover:text-[hsl(186_100%_50%)]">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
+      </div>
+      <div className="border-t border-white/5">
+        <div className="container flex flex-col gap-2 py-6 text-xs text-asphalt-foreground/50 md:flex-row md:items-center md:justify-between">
+          <p>© {new Date().getFullYear()} AstaCar. Projeto de portfólio de Raphael Diniz.</p>
+          <p>Demonstração: as reservas não geram cobrança.</p>
+        </div>
       </div>
     </footer>
   )
