@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Search, Shield, User, Edit, Loader2 } from 'lucide-react'
+import { Search, Shield, User, Edit, Loader2, Ban, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -57,18 +57,51 @@ export default function UsersAdminPage() {
   const fetchProfiles = async () => {
     try {
       setIsLoading(true)
-      console.log('=== FETCHING PROFILES ===')
       const response = await fetch('/api/admin/profiles')
-      console.log('Response status:', response.status)
       const data = await response.json()
-      console.log('Response data:', data)
-      console.log('Profiles count:', data.profiles?.length || 0)
       setProfiles(data.profiles || [])
     } catch (error) {
       console.error('Erro ao buscar perfis:', error)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
+
+  const runAction = async (profile: Profile, url: string, body: object, confirmText: string) => {
+    if (!window.confirm(confirmText)) return
+    setBusyId(profile.id)
+    setActionError('')
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) setActionError(result.error || 'Não foi possível concluir a ação.')
+      else await fetchProfiles()
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const toggleAdmin = (profile: Profile) => {
+    const role = profile.role === 'admin' ? 'client' : 'admin'
+    runAction(profile, '/api/admin/users/role', { userId: profile.id, role },
+      role === 'admin'
+        ? `Dar acesso de administrador para ${profile.email}?`
+        : `Remover o acesso de administrador de ${profile.email}?`)
+  }
+
+  const toggleBlock = (profile: Profile) => {
+    const block = !profile.blocked
+    runAction(profile, '/api/admin/users/block', { userId: profile.id, block },
+      block
+        ? `Bloquear ${profile.email}? A pessoa não consegue mais entrar e as sessões abertas são encerradas.`
+        : `Desbloquear ${profile.email}?`)
   }
 
   const handleEdit = (profile: Profile) => {
@@ -111,8 +144,6 @@ export default function UsersAdminPage() {
     profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  console.log('Rendering. Profiles:', profiles.length, 'Filtered:', filteredProfiles.length)
-
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -144,6 +175,9 @@ export default function UsersAdminPage() {
               <div className="mb-4 text-sm text-muted-foreground">
                 Total de usuários: {profiles.length} | Exibindo: {filteredProfiles.length}
               </div>
+              {actionError && (
+                <p role="alert" className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{actionError}</p>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -188,13 +222,38 @@ export default function UsersAdminPage() {
                         {format(new Date(profile.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(profile)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(profile)}
+                            aria-label={`Editar dados de ${profile.email}`}
+                            title="Editar dados"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={busyId === profile.id}
+                            onClick={() => toggleAdmin(profile)}
+                            aria-label={profile.role === 'admin' ? `Remover admin de ${profile.email}` : `Tornar ${profile.email} admin`}
+                            title={profile.role === 'admin' ? 'Remover acesso de admin' : 'Tornar admin'}
+                          >
+                            {profile.role === 'admin' ? <User className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={busyId === profile.id}
+                            onClick={() => toggleBlock(profile)}
+                            aria-label={profile.blocked ? `Desbloquear ${profile.email}` : `Bloquear ${profile.email}`}
+                            title={profile.blocked ? 'Desbloquear' : 'Bloquear'}
+                            className={profile.blocked ? '' : 'text-destructive hover:text-destructive'}
+                          >
+                            {profile.blocked ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
