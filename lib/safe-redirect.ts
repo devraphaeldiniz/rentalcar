@@ -6,6 +6,7 @@
 export function safeRedirect(target: string | null | undefined, fallback = '/'): string {
   if (!target || typeof target !== 'string') return fallback
   if (!target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return fallback
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: o objetivo é justamente recusar caracteres de controle
   if (/[\u0000-\u001f\u007f]/.test(target)) return fallback
   try {
     const base = 'http://local.invalid'

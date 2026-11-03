@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 
 // Captura erros inesperados de qualquer página: em vez de tela branca,
 // a pessoa vê o que aconteceu e tem como seguir.
-export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error)
   }, [error])

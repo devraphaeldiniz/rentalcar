@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { adminGraphql } from '@/lib/auth/authorization'
 

@@ -61,14 +61,16 @@ export function ReviewForm({ bookingId, vehicleId, onSuccess }: ReviewFormProps)
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Sua nota</label>
+          <fieldset>
+            <legend className="block text-sm font-medium mb-2">Sua nota</legend>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
+                  aria-label={`${star} ${star === 1 ? 'estrela' : 'estrelas'}`}
+                  aria-pressed={rating === star}
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
                   className="transition-transform hover:scale-110"
@@ -83,13 +85,14 @@ export function ReviewForm({ bookingId, vehicleId, onSuccess }: ReviewFormProps)
                 </button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label htmlFor="rf-comentario" className="block text-sm font-medium mb-2">
               Comentário (opcional)
             </label>
             <Textarea
+              id="rf-comentario"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Conte-nos sobre sua experiência..."

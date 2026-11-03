@@ -48,7 +48,6 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
       <section className="mt-8 overflow-hidden rounded-lg border">
         {image && (
           <div className="relative aspect-[16/7] bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
         )}

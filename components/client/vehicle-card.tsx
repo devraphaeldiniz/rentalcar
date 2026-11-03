@@ -44,7 +44,6 @@ export function VehicleCard({ vehicle, range, unavailable = false, category }: P
     <article className={`flex flex-col overflow-hidden rounded-lg border bg-card ${unavailable ? 'opacity-60' : ''}`}>
       <Link href={`/vehicles/${vehicle.id}${detailQuery}`} className="relative block overflow-hidden bg-muted aspect-[16/10]" tabIndex={-1} aria-hidden>
         {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">

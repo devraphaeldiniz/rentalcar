@@ -18,7 +18,6 @@ export function VehicleGallery({ images, name, credits = [] }: { images: string[
   return (
     <div className="grid gap-3">
       <div className="relative aspect-[16/10] overflow-hidden rounded-lg bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={images[active]} alt={`${name}, foto ${active + 1} de ${images.length}`} className="absolute inset-0 h-full w-full object-cover" />
       </div>
       {credits[active] && (
@@ -42,7 +41,6 @@ export function VehicleGallery({ images, name, credits = [] }: { images: string[
               onClick={() => setActive(i)}
               className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-md border-2 ${i === active ? 'border-primary' : 'border-transparent opacity-70 hover:opacity-100'}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
             </button>
           ))}

@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 
 // Histórico real do próprio usuário (antes eram dados de exemplo).

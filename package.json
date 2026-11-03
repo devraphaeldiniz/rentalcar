@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:setup": "node scripts/setup-nhost.mjs",
@@ -52,6 +52,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.4",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22",
     "@types/papaparse": "^5.5.0",
@@ -60,8 +61,6 @@
     "@types/react-dom": "^18",
     "@types/speakeasy": "^2.0.10",
     "@vitejs/plugin-react": "^5.0.4",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^15.5.28",
     "jsdom": "^27.0.0",
     "postcss": "^8.5.31",
     "tailwindcss": "^3.4.1",

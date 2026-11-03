@@ -134,7 +134,6 @@ export default function CheckoutPage() {
         <div className="grid gap-8 content-start">
           <section className="flex gap-4 rounded-lg border p-4">
             <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               {image && <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
             </div>
             <div>

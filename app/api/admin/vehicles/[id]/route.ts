@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
 import { EDITABLE_VEHICLE_FIELDS as EDITABLE, pickVehicleFields } from '@/lib/vehicle-fields'
 

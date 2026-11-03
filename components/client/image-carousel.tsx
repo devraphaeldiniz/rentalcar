@@ -81,6 +81,7 @@ export function ImageCarousel({ images, alt, height }: ImageCarouselProps) {
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
             {images.map((_, index) => (
               <button
+                type="button"
                 key={index}
                 onClick={() => goToSlide(index)}
                 className={`w-2 h-2 rounded-full transition-all ${
