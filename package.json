@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:setup": "node scripts/setup-nhost.mjs"
+    "db:setup": "node scripts/setup-nhost.mjs",
+    "user:create": "node scripts/create-user.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

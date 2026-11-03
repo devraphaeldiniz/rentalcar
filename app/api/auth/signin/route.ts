@@ -36,6 +36,9 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok || !session?.accessToken) {
       await recordLoginAttempt(email, ip, false, data?.error ?? `http_${response.status}`)
+      if (data?.error === 'disabled-user') {
+        return NextResponse.json({ error: 'Esta conta está bloqueada. Fale com o atendimento.' }, { status: 403 })
+      }
       if (data?.error === 'unverified-user') {
         return NextResponse.json({ error: 'Confirme seu e-mail pelo link que enviamos antes de entrar.' }, { status: 403 })
       }
