@@ -1,4 +1,5 @@
-'use server'
+// Módulo só de servidor, sem a diretiva de server action: não vira função
+// chamável pelo navegador, e não há rota pública que grave logs.
 
 type AuditAction = 
   | 'user.login'
@@ -61,7 +62,9 @@ export async function createAuditLog(input: AuditLogInput) {
   }
 }
 
-export async function getAuditLogs(userId?: string, limit = 50) {
+export async function getAuditLogs(userId: string, limit = 50) {
+  // userId obrigatório: com _eq nulo o Hasura ignora o filtro e devolveria os logs de todos.
+  if (!userId) return []
   const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
   const response = await fetch(url, {
@@ -72,7 +75,7 @@ export async function getAuditLogs(userId?: string, limit = 50) {
     },
     body: JSON.stringify({
       query: `
-        query GetAuditLogs($userId: uuid, $limit: Int!) {
+        query GetAuditLogs($userId: uuid!, $limit: Int!) {
           audit_logs(
             where: { user_id: { _eq: $userId } }
             order_by: { created_at: desc }

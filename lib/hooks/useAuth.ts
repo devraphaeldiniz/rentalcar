@@ -33,10 +33,6 @@ export function useAuth() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('[useAuth] User data received:', data.user)
-        console.log('[useAuth] User role:', data.user?.role)
-        console.log('[useAuth] Is admin:', data.user?.role === 'admin')
-        
         setUser(data.user)
         setIsAuthenticated(true)
         setIsAdmin(data.user?.role === 'admin')
@@ -51,9 +47,13 @@ export function useAuth() {
     }
   }
 
-  const logout = () => {
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-    document.cookie = 'nhostRefreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+  const logout = async () => {
+    // Cookies httpOnly só podem ser apagados pelo servidor.
+    try {
+      await fetch('/api/auth/signout', { method: 'POST', credentials: 'include' })
+    } catch (error) {
+      console.error('[useAuth] Erro ao sair:', error)
+    }
     setUser(null)
     setIsAuthenticated(false)
     setIsAdmin(false)

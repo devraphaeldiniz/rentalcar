@@ -33,7 +33,7 @@ export default function SignUpPage() {
     }
 
     try {
-      const { session, error: signUpError } = await nhost.auth.signUp({
+      const { error: signUpError } = await nhost.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -49,16 +49,6 @@ export default function SignUpPage() {
         setError(signUpError.message)
         setIsLoading(false)
       } else {
-        // Criar audit log
-        await fetch('/api/auth/audit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            action: 'user.register',
-            userId: session?.user?.id 
-          }),
-        })
-
         router.push('/')
         router.refresh()
       }
