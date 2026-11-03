@@ -39,6 +39,9 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        lane: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(52px)' } },
+      },
       fontFamily: {
         sans: ["var(--font-archivo)", "system-ui", "sans-serif"],
       },

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
+import { isValidCpf } from '@/lib/rental'
 
 type Profile = { full_name: string | null; phone: string | null; cpf: string | null; email: string; role: string; created_at: string }
 
@@ -25,7 +26,7 @@ const onlyDigits = (v: string) => v.replace(/\D/g, '')
 const input = z.object({
   fullName: z.string().trim().min(3, 'Informe o nome completo').max(120),
   phone: z.string().trim().max(20).optional().transform((v) => (v ? onlyDigits(v) : '')).refine((v) => v === '' || (v.length >= 10 && v.length <= 13), 'Telefone com DDD, só números'),
-  cpf: z.string().trim().optional().transform((v) => (v ? onlyDigits(v) : '')).refine((v) => v === '' || v.length === 11, 'CPF com 11 dígitos'),
+  cpf: z.string().trim().optional().transform((v) => (v ? onlyDigits(v) : '')).refine((v) => v === '' || isValidCpf(v), 'CPF inválido. Confira os números.'),
 })
 
 export async function PATCH(req: NextRequest) {

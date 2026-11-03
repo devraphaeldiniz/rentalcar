@@ -1,6 +1,29 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
+
+const STATUSES = ['pending', 'confirmed', 'active', 'completed', 'cancelled']
+
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  try {
+    const data = await adminGraphql<{ bookings_by_pk: unknown }>(
+      `query AdminBooking($id: uuid!) {
+        bookings_by_pk(id: $id) {
+          id start_date end_date total_amount status created_at
+          user { id email displayName phoneNumber }
+          vehicle { id brand model year plate daily_rate images }
+        }
+      }`,
+      { id: params.id },
+    )
+    if (!data.bookings_by_pk) return NextResponse.json({ error: 'Reserva não encontrada' }, { status: 404 })
+    return NextResponse.json(data.bookings_by_pk)
+  } catch (error) {
+    console.error('[admin/bookings/:id GET]', error)
+    return NextResponse.json({ error: 'Erro ao carregar a reserva' }, { status: 500 })
+  }
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -10,10 +33,7 @@ export async function PATCH(
   try {
     const { status } = await req.json()
     const { id: bookingId } = await params
-
-    console.log('=== UPDATE BOOKING ===')
-    console.log('Booking ID:', bookingId)
-    console.log('New status:', status)
+    if (!STATUSES.includes(status)) return NextResponse.json({ error: 'Status inválido' }, { status: 400 })
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 

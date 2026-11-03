@@ -5,11 +5,12 @@ import { requireUser } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
+import { isIsoDate } from '@/lib/rental'
 
 const bookingInput = z.object({
   vehicle_id: z.string().uuid(),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start_date: z.string().refine(isIsoDate),
+  end_date: z.string().refine(isIsoDate),
 })
 
 export async function POST(req: NextRequest) {

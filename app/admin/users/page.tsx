@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -70,8 +70,11 @@ export default function UsersAdminPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
 
+  const busyRef = useRef(false)
   const runAction = async (profile: Profile, url: string, body: object, confirmText: string) => {
+    if (busyRef.current) return
     if (!window.confirm(confirmText)) return
+    busyRef.current = true
     setBusyId(profile.id)
     setActionError('')
     try {
@@ -84,6 +87,7 @@ export default function UsersAdminPage() {
       if (!response.ok) setActionError(result.error || 'Não foi possível concluir a ação.')
       else await fetchProfiles()
     } finally {
+      busyRef.current = false
       setBusyId(null)
     }
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Loader2 } from 'lucide-react'
@@ -48,6 +48,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  // Trava síncrona: o estado do React só atualiza no próximo render, e um clique duplo enviaria dois pedidos.
+  const sending = useRef(false)
 
   // Sem login, volta para cá depois de entrar, com as mesmas datas.
   useEffect(() => {
@@ -73,6 +75,8 @@ export default function CheckoutPage() {
   const confirm = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validPeriod) return setError('Escolha um período válido: a devolução precisa ser depois da retirada.')
+    if (sending.current) return
+    sending.current = true
     setSubmitting(true)
     setError('')
     try {
@@ -85,14 +89,18 @@ export default function CheckoutPage() {
       const result = await response.json().catch(() => ({}))
       if (!response.ok) {
         setError(result.error || 'Não foi possível confirmar a reserva. Tente novamente.')
+        sending.current = false
+        setSubmitting(false)
         return
       }
+      // Sucesso: a trava continua ligada até a página de confirmação abrir.
       router.push(`/bookings/${result.booking.id}/confirmation`)
+      return
     } catch {
       setError('Sem conexão com o servidor. Verifique sua internet e tente novamente.')
-    } finally {
-      setSubmitting(false)
     }
+    sending.current = false
+    setSubmitting(false)
   }
 
   if (loading || authLoading || !isAuthenticated) {

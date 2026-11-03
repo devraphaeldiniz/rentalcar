@@ -68,8 +68,8 @@ export default function BookingDetailsPage() {
     try {
       const response = await fetch(`/api/admin/bookings/${bookingId}`)
       const data = await response.json()
-      
-      if (data) {
+
+      if (response.ok && data?.id) {
         setBooking(data)
       } else {
         setError('Reserva não encontrada')

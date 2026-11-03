@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { User, Shield, CalendarCheck, LogOut, ChevronDown } from 'lucide-react'
+import { User, Shield, CalendarCheck, LogOut, ChevronDown, Menu, X } from 'lucide-react'
 
 function Logo() {
   return (
@@ -31,13 +32,26 @@ export function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isAuthenticated, isAdmin, isLoading, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Fecha o menu do celular ao trocar de página.
+  useEffect(() => { setMenuOpen(false) }, [pathname])
 
   // O painel admin tem a própria navegação lateral.
   if (pathname?.startsWith('/admin')) return null
 
+  const links: [string, string][] = [
+    ['/', 'Carros'],
+    ['/profile/bookings', 'Minhas reservas'],
+    ['/sobre', 'Sobre'],
+    ['/contato', 'Contato'],
+  ]
+
   const navLink = (href: string, label: string) => (
     <Link
+      key={href}
       href={href}
+      aria-current={pathname === href ? 'page' : undefined}
       className={`text-sm font-medium hover:text-primary ${pathname === href ? 'text-primary' : 'text-foreground/80'}`}
     >
       {label}
@@ -50,20 +64,28 @@ export function Header() {
         <Logo />
 
         <nav className="hidden md:flex items-center gap-6" aria-label="Principal">
-          {navLink('/', 'Carros')}
-          {navLink('/profile/bookings', 'Minhas reservas')}
-          {navLink('/sobre', 'Sobre')}
-          {navLink('/contato', 'Contato')}
+          {links.map(([href, label]) => navLink(href, label))}
         </nav>
 
-        <div className="flex items-center gap-2 min-w-[7rem] justify-end">
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={menuOpen}
+            aria-controls="menu-celular"
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
           {isLoading ? null : isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 px-3" aria-label="Minha conta">
                   <User className="h-4 w-4" />
-                  <span className="max-w-[9rem] truncate">{user.displayName || user.email?.split('@')[0] || 'Minha conta'}</span>
-                  <ChevronDown className="h-4 w-4 opacity-60" />
+                  <span className="hidden max-w-[9rem] truncate sm:inline">{user.displayName || user.email?.split('@')[0] || 'Minha conta'}</span>
+                  <ChevronDown className="hidden h-4 w-4 opacity-60 sm:inline" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end">
@@ -105,6 +127,25 @@ export function Header() {
           )}
         </div>
       </div>
+      {menuOpen && (
+        <nav id="menu-celular" aria-label="Menu" className="border-t bg-background md:hidden">
+          <div className="container flex flex-col py-2">
+            {links.map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={pathname === href ? 'page' : undefined}
+                className={`py-3 text-base font-medium ${pathname === href ? 'text-primary' : ''}`}
+              >
+                {label}
+              </Link>
+            ))}
+            {!isAuthenticated && (
+              <Link href="/auth/signup" className="py-3 text-base font-medium text-primary">Criar conta</Link>
+            )}
+          </div>
+        </nav>
+      )}
     </header>
   )
 }

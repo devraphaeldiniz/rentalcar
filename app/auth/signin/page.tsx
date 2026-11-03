@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/lib/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +12,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle } from 'lucide-react'
 
 export default function SignInPage() {
+  // Quem já está logado não precisa ver esta tela.
+  const { isAuthenticated: alreadyIn } = useAuth()
+  useEffect(() => {
+    if (!alreadyIn) return
+    const redirect = new URLSearchParams(window.location.search).get('redirect')
+    window.location.replace(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+  }, [alreadyIn])
   const router = useRouter()
   const params = useSearchParams()
   const cadastro = params.get('cadastro')

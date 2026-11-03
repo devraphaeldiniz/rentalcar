@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/lib/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +12,13 @@ import { nhost } from '@/lib/nhost/client'
 import { Shield, AlertTriangle, CheckCircle } from 'lucide-react'
 
 export default function SignUpPage() {
+  // Quem já está logado não precisa ver esta tela.
+  const { isAuthenticated: alreadyIn } = useAuth()
+  useEffect(() => {
+    if (!alreadyIn) return
+    const redirect = new URLSearchParams(window.location.search).get('redirect')
+    window.location.replace(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+  }, [alreadyIn])
   const router = useRouter()
   const [formData, setFormData] = useState({
     email: '',

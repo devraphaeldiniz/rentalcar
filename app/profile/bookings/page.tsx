@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
@@ -33,6 +33,7 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
+  const busyRef = useRef(false)
   const [message, setMessage] = useState('')
   const [reviewing, setReviewing] = useState<string | null>(null)
 
@@ -57,7 +58,9 @@ export default function MyBookingsPage() {
 
   const cancel = async (b: Booking) => {
     const name = b.vehicle ? `${b.vehicle.brand} ${b.vehicle.model}` : 'o carro'
+    if (busyRef.current) return
     if (!window.confirm(`Cancelar a reserva de ${name} (${formatLongDate(b.start_date)})?`)) return
+    busyRef.current = true
     setBusy(b.id)
     setMessage('')
     try {
@@ -66,6 +69,7 @@ export default function MyBookingsPage() {
       setMessage(response.ok ? 'Reserva cancelada.' : result.error || 'Não foi possível cancelar.')
       if (response.ok) await load()
     } finally {
+      busyRef.current = false
       setBusy(null)
     }
   }
