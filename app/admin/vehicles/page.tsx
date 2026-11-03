@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Plus, Search, Edit, Trash2, Car } from 'lucide-react'
+import { CATEGORY_LABELS, CATEGORY_ORDER, formatBRL } from '@/lib/rental'
 
 type Vehicle = {
   id: string
@@ -51,7 +52,7 @@ export default function VehiclesAdminPage() {
     year: new Date().getFullYear(),
     plate: '',
     daily_rate: 0,
-    category: 'Sedan',
+    category: 'standard',
     status: 'available',
     images: [''],
     features: ['']
@@ -143,7 +144,7 @@ export default function VehiclesAdminPage() {
       year: new Date().getFullYear(),
       plate: '',
       daily_rate: 0,
-      category: 'Sedan',
+      category: 'standard',
       status: 'available',
       images: [''],
       features: ['']
@@ -223,11 +224,14 @@ export default function VehiclesAdminPage() {
                 </div>
                 <div>
                   <Label>Categoria</Label>
-                  <Input
+                  <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     required
-                  />
+                    className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {CATEGORY_ORDER.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
+                  </select>
                 </div>
               </div>
 
@@ -329,9 +333,9 @@ export default function VehiclesAdminPage() {
                   </TableCell>
                   <TableCell>{vehicle.plate}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{vehicle.category}</Badge>
+                    <Badge variant="outline">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category}</Badge>
                   </TableCell>
-                  <TableCell>R$ {vehicle.daily_rate}</TableCell>
+                  <TableCell className="tabular">{formatBRL(Number(vehicle.daily_rate))}</TableCell>
                   <TableCell>
                     <Badge variant={vehicle.status === 'available' ? 'default' : 'secondary'}>
                       {vehicle.status === 'available' ? 'Disponível' : 'Indisponível'}

@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const data = await adminGraphql<{ bookings_by_pk: unknown }>(
       `query AdminBooking($id: uuid!) {
         bookings_by_pk(id: $id) {
-          id start_date end_date total_amount status created_at
+          id start_date end_date total_amount status payment_status created_at price_lines coupon_code terms_accepted_at
           user { id email displayName phoneNumber }
           vehicle { id brand model year plate daily_rate images }
         }
