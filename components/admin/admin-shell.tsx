@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Filter,
   Tags,
+  Megaphone,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
@@ -31,6 +32,7 @@ const menuItems = [
   { icon: Car, label: 'Veículos', href: '/admin/vehicles' },
   { icon: Calendar, label: 'Reservas', href: '/admin/bookings' },
   { icon: Tags, label: 'Preços e opcionais', href: '/admin/precos' },
+  { icon: Megaphone, label: 'Banners', href: '/admin/banners' },
   { icon: Star, label: 'Avaliações', href: '/admin/reviews' },
   { icon: Mail, label: 'Mensagens', href: '/admin/messages' },
   { icon: Shield, label: 'Segurança', href: '/admin/security' },

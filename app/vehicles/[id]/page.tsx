@@ -7,6 +7,8 @@ import { VehicleGallery } from '@/components/client/vehicle-gallery'
 import { ReserveBox } from '@/components/client/reserve-box'
 import { ReviewList } from '@/components/reviews/review-list'
 import { TrackVehicleView } from '@/components/analytics/track-view'
+import { getBanners } from '@/lib/banners'
+import { PromoBanner } from '@/components/client/promo-banner'
 import { CATEGORY_LABELS, parseRange } from '@/lib/rental'
 
 type Vehicle = {
@@ -58,6 +60,7 @@ export default async function VehicleDetailPage(props: {
   if (!vehicle) notFound()
 
   const range = parseRange(searchParams.retirada, searchParams.devolucao)
+  const banners = await getBanners('vehicle_sidebar', 2)
   const name = `${vehicle.brand} ${vehicle.model}`
   const images = vehicle.images?.length ? vehicle.images : vehicle.image_url ? [vehicle.image_url] : []
   const back = new URLSearchParams()
@@ -110,6 +113,11 @@ export default async function VehicleDetailPage(props: {
             initialEnd={range?.end}
             available={vehicle.status === 'available'}
           />
+          {banners.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {banners.map((b) => <PromoBanner key={b.id} banner={b} />)}
+            </div>
+          )}
         </aside>
 
         <div className="min-w-0 lg:col-start-1">
