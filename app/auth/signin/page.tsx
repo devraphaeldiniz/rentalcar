@@ -37,7 +37,9 @@ export default function SignInPage() {
         return
       }
 
-      window.location.href = '/'
+      // Volta para onde a pessoa estava (só caminhos internos).
+      const redirect = new URLSearchParams(window.location.search).get('redirect')
+      window.location.href = redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/'
     } catch (err) {
       setError('Erro ao conectar ao servidor')
     } finally {
@@ -46,7 +48,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-16 flex items-center justify-center min-h-screen">
+    <div className="container py-16 flex items-center justify-center min-h-[70vh]">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Entrar</CardTitle>

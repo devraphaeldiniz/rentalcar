@@ -1,16 +1,46 @@
 import type { Config } from "tailwindcss";
 
+// Tokens do tema (definidos em app/globals.css como HSL).
+// Sem este mapeamento, as classes dos componentes (bg-primary, border,
+// text-muted-foreground...) não geram CSS e a interface fica sem estilo.
 const config: Config = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: { DEFAULT: "1rem", md: "1.5rem" },
+      screens: { "2xl": "1240px" },
+    },
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+        popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
+        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        // Cores da marca: asfalto (superfícies escuras) e faixa (destaque de preço)
+        asphalt: { DEFAULT: "hsl(var(--asphalt))", foreground: "hsl(var(--asphalt-foreground))" },
+        lane: { DEFAULT: "hsl(var(--lane))", foreground: "hsl(var(--lane-foreground))" },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["var(--font-archivo)", "system-ui", "sans-serif"],
       },
     },
   },

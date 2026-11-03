@@ -1,181 +1,147 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Calendar, MapPin, Users, Fuel, Gauge, Star } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ReviewList } from '@/components/reviews/review-list'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { ArrowLeft, Star } from 'lucide-react'
+import { z } from 'zod'
+import { adminGraphql } from '@/lib/auth/authorization'
+import { VehicleGallery } from '@/components/client/vehicle-gallery'
+import { ReserveBox } from '@/components/client/reserve-box'
+import { ReviewList } from '@/components/reviews/review-list'
+import { CATEGORY_LABELS, parseRange } from '@/lib/rental'
 
-interface Vehicle {
+type Vehicle = {
   id: string
   brand: string
   model: string
   year: number
-  daily_rate: number
-  image_url: string
-  images?: string[]
-  plate: string
-  color: string
   category: string
+  daily_rate: number
   status: string
-  average_rating?: number
-  total_reviews?: number
+  description: string | null
+  transmission: string | null
+  fuel_type: string | null
+  passengers: number | null
+  doors: number | null
+  trunk_capacity: string | null
+  air_conditioning: boolean | null
+  color: string | null
+  features: string[] | null
+  images: string[] | null
+  image_url: string | null
+  average_rating: number | null
+  total_reviews: number | null
 }
 
-export default function VehicleDetailPage() {
-  const params = useParams()
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+async function getVehicle(id: string) {
+  if (!z.string().uuid().safeParse(id).success) return null
+  const data = await adminGraphql<{ vehicles_by_pk: Vehicle | null }>(
+    `query VehicleDetail($id: uuid!) {
+      vehicles_by_pk(id: $id) {
+        id brand model year category daily_rate status description transmission fuel_type
+        passengers doors trunk_capacity air_conditioning color features images image_url
+        average_rating total_reviews
+      }
+    }`,
+    { id },
+  )
+  const v = data.vehicles_by_pk
+  return v && v.status !== 'maintenance' ? v : null
+}
 
-  useEffect(() => {
-    loadVehicle()
-  }, [params.id])
+export default async function VehicleDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { retirada?: string; devolucao?: string }
+}) {
+  const vehicle = await getVehicle(params.id).catch(() => null)
+  if (!vehicle) notFound()
 
-  const loadVehicle = async () => {
-    try {
-      const response = await fetch(`/api/vehicles/${params.id}`)
-      const data = await response.json()
-      setVehicle(response.ok ? data : null)
-    } catch (error) {
-      console.error('Error loading vehicle:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const range = parseRange(searchParams.retirada, searchParams.devolucao)
+  const name = `${vehicle.brand} ${vehicle.model}`
+  const images = vehicle.images?.length ? vehicle.images : vehicle.image_url ? [vehicle.image_url] : []
+  const backHref = range ? `/?retirada=${range.start}&devolucao=${range.end}#carros` : '/#carros'
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="h-96 w-full mb-8" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    )
-  }
-
-  if (!vehicle) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="text-muted-foreground">Veículo não encontrado</p>
-      </div>
-    )
-  }
-
-  const images = vehicle.images || (vehicle.image_url ? [vehicle.image_url] : [])
+  const specs: [string, string | null][] = [
+    ['Categoria', CATEGORY_LABELS[vehicle.category] ?? vehicle.category],
+    ['Ano', String(vehicle.year)],
+    ['Câmbio', vehicle.transmission],
+    ['Combustível', vehicle.fuel_type],
+    ['Lugares', vehicle.passengers ? String(vehicle.passengers) : null],
+    ['Portas', vehicle.doors ? String(vehicle.doors) : null],
+    ['Porta-malas', vehicle.trunk_capacity],
+    ['Ar-condicionado', vehicle.air_conditioning === false ? 'Não' : 'Sim'],
+    ['Cor', vehicle.color],
+  ]
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-8 mb-12">
-          {/* Galeria de Imagens */}
-          <div className="space-y-4">
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-              {images.length > 0 ? (
-                <img
-                  src={images[currentImageIndex]}
-                  alt={`${vehicle.brand} ${vehicle.model}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Sem imagem</p>
-                </div>
-              )}
-            </div>
-            
-            {images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentImageIndex(idx)}
-                    className={`aspect-video rounded overflow-hidden ${
-                      idx === currentImageIndex ? 'ring-2 ring-primary' : ''
-                    }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`Thumb ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+    <main className="container py-8">
+      <Link href={backHref} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" /> Voltar para os carros
+      </Link>
 
-          {/* Informações */}
-          <div>
-            <div className="mb-6">
-              <h1 className="text-4xl font-bold mb-2">
-                {vehicle.brand} {vehicle.model}
-              </h1>
-              <div className="flex items-center gap-4">
-                <Badge>{vehicle.year}</Badge>
-                <Badge variant="outline">{vehicle.category}</Badge>
-                {vehicle.average_rating && vehicle.total_reviews ? (
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{vehicle.average_rating.toFixed(1)}</span>
-                    <span className="text-muted-foreground">({vehicle.total_reviews})</span>
-                  </div>
-                ) : null}
-              </div>
-            </div>
+      {/* No celular, a caixa de reserva vem logo depois das fotos; no desktop, fica fixa à direita. */}
+      <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_380px]">
+        <div className="min-w-0 lg:col-start-1">
+          <p className="text-sm text-muted-foreground">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} | {vehicle.year}</p>
+          <h1 className="text-3xl md:text-4xl font-bold">{name}</h1>
+          {vehicle.total_reviews ? (
+            <p className="mt-1 flex items-center gap-1 text-sm">
+              <Star className="h-4 w-4 fill-lane text-lane" aria-hidden />
+              <span className="font-medium">{Number(vehicle.average_rating).toFixed(1).replace('.', ',')}</span>
+              <span className="text-muted-foreground">({vehicle.total_reviews} {vehicle.total_reviews === 1 ? 'avaliação' : 'avaliações'})</span>
+            </p>
+          ) : null}
 
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-primary mb-2">
-                  R$ {vehicle.daily_rate}/dia
-                </div>
-                <p className="text-muted-foreground mb-4">
-                  Valor da diária
-                </p>
-                <Link href={`/vehicles/${vehicle.id}/checkout`}>
-                  <Button size="lg" className="w-full">
-                    <Calendar className="mr-2 h-5 w-5" />
-                    Reservar Agora
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4">Especificações</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <span>Placa: {vehicle.plate}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Fuel className="h-5 w-5 text-muted-foreground" />
-                    <span>Cor: {vehicle.color}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <span>Categoria: {vehicle.category}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Gauge className="h-5 w-5 text-muted-foreground" />
-                    <span>Status: {vehicle.status === 'available' ? 'Disponível' : 'Indisponível'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="mt-6">
+            <VehicleGallery images={images} name={name} />
           </div>
         </div>
 
-        {/* Avaliações */}
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6">Avaliações</h2>
-          <ReviewList vehicleId={vehicle.id} />
+        <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 lg:self-start">
+          <ReserveBox
+            vehicleId={vehicle.id}
+            dailyRate={Number(vehicle.daily_rate)}
+            initialStart={range?.start}
+            initialEnd={range?.end}
+            available={vehicle.status === 'available'}
+          />
+        </aside>
+
+        <div className="min-w-0 lg:col-start-1">
+          {vehicle.description && <p className="max-w-prose text-lg leading-relaxed">{vehicle.description}</p>}
+
+          <section className="mt-8">
+            <h2 className="text-xl font-bold">Ficha do carro</h2>
+            <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+              {specs.filter(([, v]) => v).map(([label, value]) => (
+                <div key={label} className="border-l-2 border-primary/30 pl-3">
+                  <dt className="text-sm text-muted-foreground">{label}</dt>
+                  <dd className="font-medium">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {vehicle.features && vehicle.features.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-xl font-bold">Itens do carro</h2>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {vehicle.features.map((f) => (
+                  <li key={f} className="rounded-md bg-muted px-3 py-1 text-sm">{f}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="mt-10">
+            <h2 className="text-xl font-bold">Avaliações</h2>
+            <div className="mt-4">
+              <ReviewList vehicleId={vehicle.id} />
+            </div>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

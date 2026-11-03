@@ -59,7 +59,7 @@ export function ReviewList({ vehicleId }: ReviewListProps) {
     return (
       <Card>
         <CardContent className="pt-6 text-center text-muted-foreground">
-          Ainda não há avaliações para este veículo.
+          Ainda sem avaliações. Quem alugar este carro pode avaliá-lo depois da devolução.
         </CardContent>
       </Card>
     )

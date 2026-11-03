@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
     const end = new Date(`${end_date}T00:00:00Z`)
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000)
     if (days < 1 || days > 90) return NextResponse.json({ error: 'Período de reserva inválido' }, { status: 400 })
+    // Tolera um dia de diferença de fuso entre o navegador e o servidor.
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    if (start_date < yesterday) return NextResponse.json({ error: 'A retirada não pode ser em uma data que já passou.' }, { status: 400 })
 
     // Identidade validada no Nhost Auth; nunca a partir de um JWT decodificado à mão.
     const auth = await requireUser()
@@ -45,7 +48,14 @@ export async function POST(req: NextRequest) {
       } },
     }) })
     const result = await bookingResponse.json()
-    if (!bookingResponse.ok || result.errors) return NextResponse.json({ error: 'Não foi possível criar a reserva' }, { status: 500 })
+    if (!bookingResponse.ok || result.errors) {
+      // A trava bookings_no_overlap do banco impede duas reservas no mesmo período.
+      const message = JSON.stringify(result.errors ?? '')
+      if (message.includes('bookings_no_overlap') || message.includes('exclusion')) {
+        return NextResponse.json({ error: 'Este carro já está reservado em parte desse período. Escolha outras datas.' }, { status: 409 })
+      }
+      return NextResponse.json({ error: 'Não foi possível criar a reserva' }, { status: 500 })
+    }
     return NextResponse.json({ success: true, booking: result.data?.insert_bookings_one })
   } catch {
     return NextResponse.json({ error: 'Erro ao processar reserva' }, { status: 500 })
