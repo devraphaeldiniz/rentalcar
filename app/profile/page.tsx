@@ -1,148 +1,136 @@
 'use client'
 
-import { useAuth } from '@/lib/hooks/useAuth'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import { Mail, Phone, Calendar, Shield, User } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useAuth } from '@/lib/hooks/useAuth'
+
+type Profile = { full_name: string | null; phone: string | null; cpf: string | null; email: string; role: string; created_at: string }
+
+function Notice({ kind, text }: { kind: 'ok' | 'error'; text: string }) {
+  return (
+    <p role={kind === 'error' ? 'alert' : 'status'}
+      className={`rounded-md p-3 text-sm ${kind === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
+      {text}
+    </p>
+  )
+}
 
 export default function ProfilePage() {
-  const { user, isAdmin } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, refetch } = useAuth()
+  const router = useRouter()
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [form, setForm] = useState({ fullName: '', phone: '', cpf: '' })
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
-  if (!user) {
-    return <div className="container mx-auto px-4 py-8">Carregando...</div>
+  const [pwd, setPwd] = useState({ next: '', confirm: '' })
+  const [pwdSaving, setPwdSaving] = useState(false)
+  const [pwdMsg, setPwdMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!isAuthenticated) {
+      router.replace('/auth/signin?redirect=%2Fprofile')
+      return
+    }
+    fetch('/api/profile').then((r) => r.json()).then((d) => {
+      if (!d.profile) return
+      setProfile(d.profile)
+      setForm({ fullName: d.profile.full_name ?? '', phone: d.profile.phone ?? '', cpf: d.profile.cpf ?? '' })
+    })
+  }, [authLoading, isAuthenticated, router])
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setSaveMsg(null)
+    try {
+      const r = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+      const d = await r.json().catch(() => ({}))
+      setSaveMsg(r.ok ? { kind: 'ok', text: 'Dados salvos.' } : { kind: 'error', text: d.error || 'Não foi possível salvar.' })
+      if (r.ok) refetch()
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwdMsg(null)
+    if (pwd.next !== pwd.confirm) return setPwdMsg({ kind: 'error', text: 'As duas senhas não são iguais.' })
+    setPwdSaving(true)
+    try {
+      const r = await fetch('/api/profile/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: pwd.next }) })
+      const d = await r.json().catch(() => ({}))
+      setPwdMsg(r.ok ? { kind: 'ok', text: 'Senha alterada. Use a nova senha no próximo login.' } : { kind: 'error', text: d.error || 'Não foi possível trocar a senha.' })
+      if (r.ok) setPwd({ next: '', confirm: '' })
+    } finally {
+      setPwdSaving(false)
+    }
+  }
+
+  if (authLoading || !profile) {
+    return (
+      <main className="container flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Carregando" />
+      </main>
+    )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Meu Perfil</h1>
-        <p className="text-muted-foreground">Gerencie suas informações pessoais e configurações de segurança</p>
-      </div>
+    <main className="container max-w-3xl py-10">
+      <h1 className="text-3xl font-bold">Meus dados</h1>
+      <p className="mt-1 text-muted-foreground">
+        {profile.email}
+        {profile.role === 'admin' && <> | <Link href="/admin" className="text-primary hover:underline">Painel administrativo</Link></>}
+      </p>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Básicas</CardTitle>
-            <CardDescription>Suas informações pessoais</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-start gap-6">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={user.avatarUrl || undefined} alt={user.displayName || 'User'} />
-                <AvatarFallback className="text-2xl">{getInitials(user.displayName || user.email || 'U')}</AvatarFallback>
-              </Avatar>
+      <form onSubmit={save} className="mt-8 grid gap-4 rounded-lg border p-5">
+        <h2 className="text-lg font-bold">Quem vai retirar o carro</h2>
+        <div className="grid gap-1.5">
+          <Label htmlFor="nome">Nome completo</Label>
+          <Input id="nome" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required minLength={3} autoComplete="name" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="telefone">Celular com DDD</Label>
+            <Input id="telefone" inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="31999999999" autoComplete="tel" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="cpf">CPF</Label>
+            <Input id="cpf" inputMode="numeric" value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="Somente números" />
+          </div>
+        </div>
+        {saveMsg && <Notice {...saveMsg} />}
+        <div><Button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar dados'}</Button></div>
+      </form>
 
-              <div className="flex-1 space-y-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Nome</span>
-                  </div>
-                  <p className="font-medium">{user.displayName || 'Não informado'}</p>
-                </div>
+      <form onSubmit={changePassword} className="mt-6 grid gap-4 rounded-lg border p-5">
+        <h2 className="text-lg font-bold">Trocar senha</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="nova">Nova senha</Label>
+            <Input id="nova" type="password" value={pwd.next} onChange={(e) => setPwd({ ...pwd, next: e.target.value })} minLength={9} required autoComplete="new-password" />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="confirmar">Repita a nova senha</Label>
+            <Input id="confirmar" type="password" value={pwd.confirm} onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })} minLength={9} required autoComplete="new-password" />
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">Pelo menos 9 caracteres.</p>
+        {pwdMsg && <Notice {...pwdMsg} />}
+        <div><Button type="submit" variant="outline" disabled={pwdSaving}>{pwdSaving ? 'Trocando...' : 'Trocar senha'}</Button></div>
+      </form>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">E-mail</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{user.email}</p>
-                    {user.emailVerified ? (
-                      <Badge variant="secondary" className="text-green-600">
-                        ✓ Verificado
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">
-                        Não verificado
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Telefone</span>
-                  </div>
-                  <p className="font-medium">{user.phoneNumber || 'Não informado'}</p>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Membro desde</span>
-                  </div>
-                  <p className="font-medium">
-                    {format(new Date(user.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                  </p>
-                </div>
-
-                {isAdmin && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Shield className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Role</span>
-                    </div>
-                    <Badge variant="secondary">
-                      <Shield className="h-3 w-3 mr-1" />
-                      Administrador
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Configurações de Segurança</CardTitle>
-            <CardDescription>Gerencie sua conta e segurança</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/profile/sessions">
-                <Shield className="mr-2 h-4 w-4" />
-                Sessões Ativas
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/profile/security">
-                <Shield className="mr-2 h-4 w-4" />
-                Autenticação de 2 Fatores
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/profile/audit-logs">
-                <Shield className="mr-2 h-4 w-4" />
-                Histórico de Atividades
-              </Link>
-            </Button>
-            <Separator />
-            <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700" asChild>
-              <Link href="/profile/change-password">
-                Alterar Senha
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      <nav className="mt-6 flex flex-wrap gap-3" aria-label="Conta">
+        <Button asChild variant="outline"><Link href="/profile/bookings">Minhas reservas</Link></Button>
+        <Button asChild variant="outline"><Link href="/profile/audit-logs">Histórico de acessos</Link></Button>
+      </nav>
+    </main>
   )
 }

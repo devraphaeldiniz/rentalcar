@@ -18,19 +18,32 @@ export default function ContatoPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [sendError, setSendError] = useState('')
+  const [website, setWebsite] = useState('') // campo-isca anti-robô, invisível
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
     setIsSubmitting(true)
-    
-    // Simular envio (você pode integrar com um serviço de email depois)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    setIsSubmitting(false)
-    setSubmitted(true)
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
-    
-    setTimeout(() => setSubmitted(false), 5000)
+    setSendError('')
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, website }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setSendError(result.error || 'Não foi possível enviar. Tente de novo.')
+        return
+      }
+      setSubmitted(true)
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
+    } catch {
+      setSendError('Sem conexão com o servidor. Verifique sua internet e tente de novo.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const contactInfo = [
@@ -117,6 +130,11 @@ export default function ContatoPage() {
                 )}
                 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)}
+                    tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
+                  {sendError && (
+                    <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{sendError}</p>
+                  )}
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Nome *</Label>

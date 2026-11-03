@@ -1,65 +1,28 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { requireUser } from '@/lib/auth/authorization'
+import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 
+// Histórico real do próprio usuário (antes eram dados de exemplo).
 export async function GET(req: NextRequest) {
   const auth = await requireUser()
   if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
-  const { searchParams } = new URL(req.url)
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '20')
+  const page = Math.max(1, Number(req.nextUrl.searchParams.get('page')) || 1)
+  const limit = Math.min(50, Math.max(1, Number(req.nextUrl.searchParams.get('limit')) || 20))
 
-  // TODO: Buscar logs reais do banco usando getAuditLogs()
-  // Por enquanto, dados mockados para demonstração
-  const mockLogs = [
-    {
-      id: '1',
-      action: 'user.login',
-      ip_address: '192.168.1.100',
-      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      action: 'user.2fa_enabled',
-      ip_address: '192.168.1.100',
-      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    },
-    {
-      id: '3',
-      action: 'booking.created',
-      resource: 'Toyota Corolla',
-      resource_id: 'booking-123',
-      ip_address: '192.168.1.100',
-      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-      metadata: {
-        vehicle: 'Toyota Corolla 2024',
-        start_date: '2025-10-25',
-        end_date: '2025-10-30',
-        total: 'R$ 1400.00'
-      },
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    },
-    {
-      id: '4',
-      action: 'user.login',
-      ip_address: '192.168.1.101',
-      user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1',
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    },
-    {
-      id: '5',
-      action: 'admin.access',
-      ip_address: '192.168.1.100',
-      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-    },
-  ]
-
-  const logs = mockLogs.slice((page - 1) * limit, page * limit)
-  const hasMore = page * limit < mockLogs.length
-
-  return NextResponse.json({ logs, hasMore })
+  try {
+    const data = await adminGraphql<{ audit_logs: unknown[] }>(
+      `query MyLogs($userId: uuid!, $limit: Int!, $offset: Int!) {
+        audit_logs(where: { user_id: { _eq: $userId } }, order_by: { created_at: desc }, limit: $limit, offset: $offset) {
+          id action resource resource_id ip_address user_agent metadata created_at
+        }
+      }`,
+      { userId: auth.userId, limit: limit + 1, offset: (page - 1) * limit },
+    )
+    const rows = data.audit_logs ?? []
+    return NextResponse.json({ logs: rows.slice(0, limit), hasMore: rows.length > limit })
+  } catch (error) {
+    console.error('[profile/audit-logs]', error)
+    return NextResponse.json({ error: 'Erro ao carregar o histórico' }, { status: 500 })
+  }
 }

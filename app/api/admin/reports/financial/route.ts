@@ -13,16 +13,16 @@ export async function GET(req: NextRequest) {
     console.log('Start date:', startDate)
     console.log('End date:', endDate)
 
-    let whereClause = {}
-    
+    // Receita não conta reservas canceladas.
+    let whereClause: Record<string, unknown> = { status: { _neq: 'cancelled' } }
+
     if (startDate && endDate) {
       whereClause = {
+        ...whereClause,
         start_date: { _gte: startDate },
         end_date: { _lte: endDate }
       }
     }
-
-    console.log('Where clause:', JSON.stringify(whereClause))
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 

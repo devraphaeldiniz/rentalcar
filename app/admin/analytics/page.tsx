@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Car, Users } from 'lucide-react'
+import { formatBRL } from '@/lib/rental'
 
 type Analytics = {
   revenue: {
@@ -103,7 +104,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {analytics.revenue.total.toLocaleString('pt-BR')}
+              {formatBRL(Number(analytics.revenue.total))}
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
               {analytics.revenue.growth >= 0 ? (

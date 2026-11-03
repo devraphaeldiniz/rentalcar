@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/lib/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,8 +12,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle } from 'lucide-react'
 
 export default function SignInPage() {
+  // Quem já está logado não precisa ver esta tela.
+  const { isAuthenticated: alreadyIn } = useAuth()
+  useEffect(() => {
+    if (!alreadyIn) return
+    const redirect = new URLSearchParams(window.location.search).get('redirect')
+    window.location.replace(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+  }, [alreadyIn])
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const params = useSearchParams()
+  const cadastro = params.get('cadastro')
+  const [email, setEmail] = useState(params.get('email') ?? '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -55,6 +65,16 @@ export default function SignInPage() {
           <CardDescription>Entre na sua conta para continuar</CardDescription>
         </CardHeader>
         <CardContent>
+          {cadastro && !error && (
+            <Alert className="mb-6">
+              <AlertDescription>
+                {cadastro === 'ok'
+                  ? 'Conta criada. Entre com seu e-mail e senha para continuar.'
+                  : 'Conta criada. Confirme seu e-mail pelo link que enviamos e depois entre aqui.'}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />

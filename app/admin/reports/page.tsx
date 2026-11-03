@@ -15,10 +15,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Download, FileText, FileSpreadsheet, Loader2, TrendingUp, DollarSign, Calendar } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns'
+import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { exportToCSV } from '@/lib/reports/csv-export'
 import { exportBookingsToPDF, exportFinancialReportToPDF } from '@/lib/reports/pdf-export'
+import { formatBRL } from '@/lib/rental'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -61,7 +62,7 @@ export default function ReportsPage() {
   const processChartData = (bookings: any[], financial: any) => {
     const revenueByDay = new Map()
     bookings.forEach(booking => {
-      const day = format(new Date(booking.start_date), 'dd/MM')
+      const day = format(parseISO(booking.start_date), 'dd/MM')
       if (!revenueByDay.has(day)) {
         revenueByDay.set(day, 0)
       }
@@ -105,8 +106,8 @@ export default function ReportsPage() {
 
   const handleExportBookingsCSV = () => {
     const csvData = bookingsData.map(booking => ({
-      'Data Início': format(new Date(booking.start_date), 'dd/MM/yyyy'),
-      'Data Fim': format(new Date(booking.end_date), 'dd/MM/yyyy'),
+      'Data Início': format(parseISO(booking.start_date), 'dd/MM/yyyy'),
+      'Data Fim': format(parseISO(booking.end_date), 'dd/MM/yyyy'),
       'Cliente': booking.user?.email || '-',
       'Veículo': `${booking.vehicle?.brand} ${booking.vehicle?.model}`,
       'Placa': booking.vehicle?.plate,
@@ -224,7 +225,7 @@ export default function ReportsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold">
-                        R$ {bookingsData.reduce((sum, b) => sum + b.total_amount, 0).toLocaleString('pt-BR')}
+                        {formatBRL(Number(bookingsData.reduce((sum, b) => sum + b.total_amount, 0)))}
                       </div>
                       <p className="text-sm text-muted-foreground">Receita Total</p>
                     </CardContent>
@@ -338,7 +339,7 @@ export default function ReportsPage() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="day" />
                     <YAxis />
-                    <Tooltip formatter={(value: any) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                    <Tooltip formatter={(value: any) => formatBRL(Number(value))} />
                     <Legend />
                     <Line type="monotone" dataKey="revenue" name="Receita" stroke="#3b82f6" strokeWidth={2} />
                   </LineChart>

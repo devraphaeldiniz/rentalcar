@@ -53,7 +53,7 @@ export default async function VehicleDetailPage({
   searchParams,
 }: {
   params: { id: string }
-  searchParams: { retirada?: string; devolucao?: string }
+  searchParams: { retirada?: string; devolucao?: string; categoria?: string }
 }) {
   const vehicle = await getVehicle(params.id).catch(() => null)
   if (!vehicle) notFound()
@@ -61,7 +61,10 @@ export default async function VehicleDetailPage({
   const range = parseRange(searchParams.retirada, searchParams.devolucao)
   const name = `${vehicle.brand} ${vehicle.model}`
   const images = vehicle.images?.length ? vehicle.images : vehicle.image_url ? [vehicle.image_url] : []
-  const backHref = range ? `/?retirada=${range.start}&devolucao=${range.end}#carros` : '/#carros'
+  const back = new URLSearchParams()
+  if (range) { back.set('retirada', range.start); back.set('devolucao', range.end) }
+  if (searchParams.categoria && CATEGORY_LABELS[searchParams.categoria]) back.set('categoria', searchParams.categoria)
+  const backHref = `/${back.toString() ? `?${back.toString()}` : ''}#carros`
 
   const specs: [string, string | null][] = [
     ['Categoria', CATEGORY_LABELS[vehicle.category] ?? vehicle.category],

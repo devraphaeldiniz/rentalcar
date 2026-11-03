@@ -75,42 +75,11 @@ export default function EditVehiclePage() {
 
   const fetchVehicle = async () => {
     try {
-      const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `
-            query GetVehicle($id: uuid!) {
-              vehicles_by_pk(id: $id) {
-                id
-                brand
-                model
-                year
-                plate
-                category
-                daily_rate
-                status
-                description
-                transmission
-                fuel_type
-                passengers
-                doors
-                trunk_capacity
-                features
-                images
-              }
-            }
-          `,
-          variables: { id: vehicleId }
-        }),
-      })
-
+      const response = await fetch(`/api/admin/vehicles/${vehicleId}`)
       const result = await response.json()
-      
-      if (result.data?.vehicles_by_pk) {
-        const vehicleData = result.data.vehicles_by_pk
+
+      if (response.ok && result.vehicle) {
+        const vehicleData = result.vehicle
         setVehicle(vehicleData)
         setFormData({
           brand: vehicleData.brand || '',
@@ -148,7 +117,7 @@ export default function EditVehiclePage() {
 
     try {
       const response = await fetch(`/api/admin/vehicles/${vehicleId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,

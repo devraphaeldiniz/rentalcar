@@ -2,12 +2,15 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/authorization'
+import { createAuditLog } from '@/lib/security/audit'
+import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
+import { isIsoDate } from '@/lib/rental'
 
 const bookingInput = z.object({
   vehicle_id: z.string().uuid(),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start_date: z.string().refine(isIsoDate),
+  end_date: z.string().refine(isIsoDate),
 })
 
 export async function POST(req: NextRequest) {
@@ -56,7 +59,17 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ error: 'Não foi possível criar a reserva' }, { status: 500 })
     }
-    return NextResponse.json({ success: true, booking: result.data?.insert_bookings_one })
+    const booking = result.data?.insert_bookings_one
+    await createAuditLog({
+      userId: user_id,
+      action: 'booking.created',
+      resource: 'booking',
+      resourceId: booking?.id,
+      ipAddress: await getClientIP(),
+      userAgent: await getUserAgent(),
+      metadata: { vehicle_id, start_date, end_date, total_amount },
+    })
+    return NextResponse.json({ success: true, booking })
   } catch {
     return NextResponse.json({ error: 'Erro ao processar reserva' }, { status: 500 })
   }

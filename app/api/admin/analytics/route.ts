@@ -1,120 +1,81 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { NextResponse } from 'next/server'
+import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
 
-export async function GET(req: NextRequest) {
+// Indicadores calculados a partir das reservas reais (antes havia números fixos).
+// Receita considera só reservas não canceladas.
+
+type Row = { total_amount: number; status: string; created_at: string; vehicle: { brand: string; model: string } | null }
+
+const monthKey = (iso: string) => iso.slice(0, 7)
+const growth = (now: number, before: number) => (before > 0 ? Math.round(((now - before) / before) * 100) : now > 0 ? 100 : 0)
+
+export async function GET() {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+
   try {
-    const searchParams = req.nextUrl.searchParams
-    const period = searchParams.get('period') || '30'
+    const data = await adminGraphql<{
+      bookings: Row[]
+      vehicles: { aggregate: { count: number } }
+      available: { aggregate: { count: number } }
+      users: { createdAt: string }[]
+    }>(`query Analytics {
+      bookings(order_by: { created_at: asc }) { total_amount status created_at vehicle { brand model } }
+      vehicles: vehicles_aggregate { aggregate { count } }
+      available: vehicles_aggregate(where: { status: { _eq: "available" } }) { aggregate { count } }
+      users { createdAt }
+    }`)
 
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
+    const now = new Date()
+    const thisMonth = now.toISOString().slice(0, 7)
+    const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7)
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
+    const valid = data.bookings.filter((b) => b.status !== 'cancelled')
+    const revenueBy = new Map<string, number>()
+    const countBy = new Map<string, number>()
+    for (const b of data.bookings) countBy.set(monthKey(b.created_at), (countBy.get(monthKey(b.created_at)) ?? 0) + 1)
+    for (const b of valid) revenueBy.set(monthKey(b.created_at), (revenueBy.get(monthKey(b.created_at)) ?? 0) + Number(b.total_amount))
+
+    const months = Array.from({ length: 6 }, (_, i) =>
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + i, 1)).toISOString().slice(0, 7))
+
+    const statuses = ['pending', 'confirmed', 'active', 'completed', 'cancelled']
+    const rented = new Map<string, number>()
+    for (const b of valid) {
+      if (!b.vehicle) continue
+      const name = `${b.vehicle.brand} ${b.vehicle.model}`
+      rented.set(name, (rented.get(name) ?? 0) + 1)
+    }
+
+    const usersThisMonth = data.users.filter((u) => monthKey(u.createdAt) === thisMonth).length
+    const usersPrev = data.users.filter((u) => monthKey(u.createdAt) === prev).length
+
+    return NextResponse.json({
+      analytics: {
+        revenue: {
+          total: valid.reduce((s, b) => s + Number(b.total_amount), 0),
+          growth: growth(revenueBy.get(thisMonth) ?? 0, revenueBy.get(prev) ?? 0),
+          byMonth: months.map((m) => ({ month: m, revenue: revenueBy.get(m) ?? 0 })),
+        },
+        bookings: {
+          total: data.bookings.length,
+          growth: growth(countBy.get(thisMonth) ?? 0, countBy.get(prev) ?? 0),
+          byStatus: statuses.map((status) => ({ status, count: data.bookings.filter((b) => b.status === status).length })),
+        },
+        vehicles: {
+          total: data.vehicles.aggregate.count,
+          available: data.available.aggregate.count,
+          mostRented: [...rented.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([vehicle, count]) => ({ vehicle, count })),
+        },
+        users: {
+          total: data.users.length,
+          growth: growth(usersThisMonth, usersPrev),
+          newThisMonth: usersThisMonth,
+        },
       },
-      body: JSON.stringify({
-        query: `
-          query GetAnalytics {
-            bookings_aggregate {
-              aggregate {
-                count
-                sum {
-                  total_amount
-                }
-              }
-            }
-            pending: bookings_aggregate(where: { status: { _eq: "pending" } }) {
-              aggregate { count }
-            }
-            confirmed: bookings_aggregate(where: { status: { _eq: "confirmed" } }) {
-              aggregate { count }
-            }
-            cancelled: bookings_aggregate(where: { status: { _eq: "cancelled" } }) {
-              aggregate { count }
-            }
-            vehicles_aggregate {
-              aggregate { count }
-            }
-            available_vehicles: vehicles_aggregate(where: { status: { _eq: "available" } }) {
-              aggregate { count }
-            }
-            users_aggregate {
-              aggregate { count }
-            }
-          }
-        `
-      }),
     })
-
-    const result = await response.json()
-
-    if (result.errors) {
-      return NextResponse.json({
-        analytics: {
-          revenue: { total: 12500, growth: 15, byMonth: [] },
-          bookings: {
-            total: 25,
-            growth: 10,
-            byStatus: [
-              { status: 'confirmed', count: 15 },
-              { status: 'pending', count: 8 },
-              { status: 'cancelled', count: 2 }
-            ]
-          },
-          vehicles: {
-            total: 10,
-            available: 7,
-            mostRented: [
-              { vehicle: 'Honda Civic', count: 8 },
-              { vehicle: 'Toyota Corolla', count: 6 },
-              { vehicle: 'Chevrolet Onix', count: 5 }
-            ]
-          },
-          users: { total: 45, growth: 20, newThisMonth: 8 }
-        }
-      })
-    }
-
-    const data = result.data
-    const analytics = {
-      revenue: {
-        total: data.bookings_aggregate.aggregate.sum.total_amount || 0,
-        growth: 15,
-        byMonth: []
-      },
-      bookings: {
-        total: data.bookings_aggregate.aggregate.count || 0,
-        growth: 10,
-        byStatus: [
-          { status: 'confirmed', count: data.confirmed.aggregate.count || 0 },
-          { status: 'pending', count: data.pending.aggregate.count || 0 },
-          { status: 'cancelled', count: data.cancelled.aggregate.count || 0 }
-        ]
-      },
-      vehicles: {
-        total: data.vehicles_aggregate.aggregate.count || 0,
-        available: data.available_vehicles.aggregate.count || 0,
-        mostRented: [
-          { vehicle: 'Honda Civic', count: 8 },
-          { vehicle: 'Toyota Corolla', count: 6 }
-        ]
-      },
-      users: {
-        total: data.users_aggregate.aggregate.count || 0,
-        growth: 20,
-        newThisMonth: 8
-      }
-    }
-
-    return NextResponse.json({ analytics })
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Erro ao buscar analytics' },
-      { status: 500 }
-    )
+    console.error('[admin/analytics]', error)
+    return NextResponse.json({ error: 'Erro ao calcular os indicadores' }, { status: 500 })
   }
 }

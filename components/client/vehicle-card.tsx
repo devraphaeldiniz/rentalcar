@@ -22,13 +22,16 @@ type Props = {
   vehicle: CatalogVehicle
   range: DateRange | null
   unavailable?: boolean
+  /** Categoria filtrada na home, para o "voltar" da página do carro manter o filtro. */
+  category?: string
 }
 
-export function VehicleCard({ vehicle, range, unavailable = false }: Props) {
+export function VehicleCard({ vehicle, range, unavailable = false, category }: Props) {
   const image = vehicle.images?.[0] || vehicle.image_url
   const name = `${vehicle.brand} ${vehicle.model}`
   const rate = Number(vehicle.daily_rate)
   const query = range ? `?retirada=${range.start}&devolucao=${range.end}` : ''
+  const detailQuery = category ? `${query ? `${query}&` : '?'}categoria=${category}` : query
 
   const specs = [
     vehicle.passengers ? { icon: Users, label: `${vehicle.passengers} lugares` } : null,
@@ -39,7 +42,7 @@ export function VehicleCard({ vehicle, range, unavailable = false }: Props) {
 
   return (
     <article className={`flex flex-col overflow-hidden rounded-lg border bg-card ${unavailable ? 'opacity-60' : ''}`}>
-      <Link href={`/vehicles/${vehicle.id}${query}`} className="relative block overflow-hidden bg-muted aspect-[16/10]" tabIndex={-1} aria-hidden>
+      <Link href={`/vehicles/${vehicle.id}${detailQuery}`} className="relative block overflow-hidden bg-muted aspect-[16/10]" tabIndex={-1} aria-hidden>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
@@ -54,7 +57,7 @@ export function VehicleCard({ vehicle, range, unavailable = false }: Props) {
         <div>
           <p className="text-sm text-muted-foreground">{CATEGORY_LABELS[vehicle.category] ?? vehicle.category} | {vehicle.year}</p>
           <h3 className="text-xl font-bold">
-            <Link href={`/vehicles/${vehicle.id}${query}`} className="hover:text-primary">{name}</Link>
+            <Link href={`/vehicles/${vehicle.id}${detailQuery}`} className="hover:text-primary">{name}</Link>
           </h3>
         </div>
 

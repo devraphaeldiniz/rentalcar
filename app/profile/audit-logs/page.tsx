@@ -189,13 +189,6 @@ export default function AuditLogsPage() {
                       )}
                     </div>
                     
-                    {log.metadata && Object.keys(log.metadata).length > 0 && (
-                      <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
-                        <pre className="text-muted-foreground overflow-x-auto">
-                          {JSON.stringify(log.metadata, null, 2)}
-                        </pre>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
@@ -228,10 +221,6 @@ export default function AuditLogsPage() {
           <p>
             <strong>Privacidade:</strong> Apenas você e administradores autorizados podem 
             visualizar seu histórico.
-          </p>
-          <p>
-            <strong>Retenção:</strong> Os registros são mantidos por 90 dias para fins de 
-            auditoria e segurança.
           </p>
         </CardContent>
       </Card>

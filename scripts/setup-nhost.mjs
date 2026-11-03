@@ -93,7 +93,7 @@ async function migrate() {
 }
 
 // ---------- 2. metadata do Hasura ----------
-const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts']
+const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages']
 const AUTH_USERS = { schema: 'auth', name: 'users' }
 const t = (name) => ({ schema: 'public', name })
 

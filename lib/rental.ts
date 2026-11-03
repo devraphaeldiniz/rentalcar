@@ -18,8 +18,24 @@ export const MAX_RENTAL_DAYS = 90
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
+/** Data AAAA-MM-DD que existe no calendário (recusa 30/02, 31/04 etc.). */
 export function isIsoDate(value: unknown): value is string {
-  return typeof value === 'string' && ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+  if (typeof value !== 'string' || !ISO_DATE.test(value)) return false
+  const d = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value
+}
+
+/** CPF com dígitos verificadores válidos (aceita com ou sem máscara). */
+export function isValidCpf(input: string): boolean {
+  const cpf = input.replace(/\D/g, '')
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false
+  const digit = (len: number) => {
+    let sum = 0
+    for (let i = 0; i < len; i++) sum += Number(cpf[i]) * (len + 1 - i)
+    const rest = (sum * 10) % 11
+    return rest === 10 ? 0 : rest
+  }
+  return digit(9) === Number(cpf[9]) && digit(10) === Number(cpf[10])
 }
 
 /** Número de diárias entre retirada e devolução (mesma regra da API). */
@@ -58,3 +74,18 @@ const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'sho
 export const formatShortDate = (iso: string) => shortDate.format(new Date(`${iso}T00:00:00Z`)).replace('.', '')
 
 export const pluralDays = (n: number) => `${n} ${n === 1 ? 'diária' : 'diárias'}`
+
+const longDate = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })
+/** Datas de reserva são dias de calendário: formatar em UTC evita mostrar o dia anterior no Brasil. */
+export const formatLongDate = (iso: string) => {
+  const s = longDate.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`))
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+export const BOOKING_STATUS: Record<string, { label: string; tone: 'wait' | 'ok' | 'done' | 'off' }> = {
+  pending: { label: 'Aguardando confirmação', tone: 'wait' },
+  confirmed: { label: 'Confirmada', tone: 'ok' },
+  active: { label: 'Em andamento', tone: 'ok' },
+  completed: { label: 'Concluída', tone: 'done' },
+  cancelled: { label: 'Cancelada', tone: 'off' },
+}
