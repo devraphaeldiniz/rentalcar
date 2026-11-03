@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
     const total_amount = Number(vehicle.daily_rate) * days
     const bookingResponse = await fetch(url, { method: 'POST', headers, body: JSON.stringify({
       query: `mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount } }`,
-      variables: { object: { user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending' } },
+      variables: { object: {
+        user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending',
+        customer_email: auth.email, customer_name: auth.user.displayName ?? null,
+      } },
     }) })
     const result = await bookingResponse.json()
     if (!bookingResponse.ok || result.errors) return NextResponse.json({ error: 'Não foi possível criar a reserva' }, { status: 500 })

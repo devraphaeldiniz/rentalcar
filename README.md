@@ -82,12 +82,18 @@ cd rentalcar
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
-Crie um arquivo `.env.local` com suas credenciais:
-```env
-NEXT_PUBLIC_NHOST_SUBDOMAIN=seu-subdomain
-NEXT_PUBLIC_NHOST_REGION=sa-east-1
-NHOST_ADMIN_SECRET=seu-admin-secret
+### 2. Criar o projeto no Nhost e configurar o ambiente
+1. Crie um projeto em [app.nhost.io](https://app.nhost.io).
+2. Copie `.env.example` para `.env.local` e preencha subdomínio, região e o admin secret do Hasura.
+3. Crie todo o banco (tabelas, gatilhos, relações e permissões) com um comando:
+```bash
+npm run db:setup -- --seed
+```
+O `--seed` cadastra quatro veículos de exemplo. O comando pode ser executado de novo sem duplicar nada: as migrações aplicadas ficam registradas em `schema_migrations`.
+
+4. Depois de criar sua conta pelo site, promova-a a administrador:
+```bash
+npm run db:setup -- --admin seu@email.com
 ```
 
 ### 3. Iniciar o servidor de desenvolvimento

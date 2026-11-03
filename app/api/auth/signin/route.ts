@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { authUrl, cookieOptions, ACCESS_COOKIE, REFRESH_COOKIE, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '@/lib/auth/authorization'
+import { authUrl, adminGraphql, cookieOptions, ACCESS_COOKIE, REFRESH_COOKIE, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '@/lib/auth/authorization'
 import { checkLoginRateLimit, recordLoginAttempt } from '@/lib/security/rate-limit'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
@@ -36,11 +36,25 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok || !session?.accessToken) {
       await recordLoginAttempt(email, ip, false, data?.error ?? `http_${response.status}`)
+      if (data?.error === 'unverified-user') {
+        return NextResponse.json({ error: 'Confirme seu e-mail pelo link que enviamos antes de entrar.' }, { status: 403 })
+      }
       // Mensagem genérica: não revela se o e-mail existe.
       return NextResponse.json({ error: 'E-mail ou senha inválidos' }, { status: 401 })
     }
 
     await recordLoginAttempt(email, ip, true)
+
+    // Garante o perfil (reservas e papel de admin dependem dele) caso o
+    // trigger em auth.users não exista neste projeto.
+    if (session.user?.id) {
+      await adminGraphql(
+        `mutation EnsureProfile($object: profiles_insert_input!) {
+          insert_profiles_one(object: $object, on_conflict: { constraint: profiles_pkey, update_columns: [] }) { id }
+        }`,
+        { object: { id: session.user.id, email, full_name: session.user.displayName || null } },
+      ).catch((error) => console.error('[signin] perfil:', error))
+    }
     await createAuditLog({
       userId: session.user?.id,
       action: 'user.login',
