@@ -1,3 +1,5 @@
+const path = require('node:path')
+
 /** @type {import('next').NextConfig} */
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -30,6 +32,9 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  // Raiz do projeto explícita: evita que um package-lock.json solto em
+  // pastas acima (ex.: a pasta do usuário) confunda o Next.
+  outputFileTracingRoot: path.join(__dirname),
   poweredByHeader: false,
   images: {
     // As fotos são servidas direto da origem; o otimizador de imagens do

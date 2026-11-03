@@ -72,7 +72,7 @@ flowchart TD
 ## 🚀 Como Rodar o Projeto
 
 ### Pré-requisitos
-- Node.js 18+ e npm
+- Node.js 22 (o arquivo `.nvmrc` fixa a versão; com fnm ou nvm, rode `fnm use` na pasta) e npm
 - Projeto ativo no [Nhost](https://nhost.io)
 
 ### 1. Clonar o repositório e instalar dependências
