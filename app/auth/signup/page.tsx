@@ -33,7 +33,7 @@ export default function SignUpPage() {
     }
 
     try {
-      const { error: signUpError } = await nhost.auth.signUp({
+      const { session, error: signUpError } = await nhost.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -49,8 +49,10 @@ export default function SignUpPage() {
         setError(signUpError.message)
         setIsLoading(false)
       } else {
-        router.push('/')
-        router.refresh()
+        // O site usa sessão em cookie, criada pela rota de login. Depois do cadastro,
+        // a pessoa entra por lá (ou confirma o e-mail antes, se o projeto exigir).
+        if (session) await nhost.auth.signOut().catch(() => {})
+        router.push(`/auth/signin?cadastro=${session ? 'ok' : 'confirmar'}&email=${encodeURIComponent(formData.email)}`)
       }
     } catch (err: any) {
       setError('Erro ao criar conta. Tente novamente.')

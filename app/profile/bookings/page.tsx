@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Calendar, Car, DollarSign, Loader2, Clock, CheckCircle, XCircle } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import Image from 'next/image'
+import { ReviewForm } from '@/components/reviews/review-form'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { BOOKING_STATUS, formatBRL, formatLongDate, pluralDays, rentalDays, todayIso } from '@/lib/rental'
 
 type Booking = {
   id: string
@@ -18,159 +16,140 @@ type Booking = {
   total_amount: number
   status: string
   created_at: string
-  vehicle: {
-    id: string
-    brand: string
-    model: string
-    plate: string
-    images: string[]
-    daily_rate: number
-  }
+  reviews?: { id: string }[]
+  vehicle: { id: string; brand: string; model: string; images: string[] | null; image_url: string | null } | null
 }
 
-const statusConfig = {
-  pending: { label: 'Pendente', color: 'bg-yellow-500', icon: Clock },
-  confirmed: { label: 'Confirmada', color: 'bg-green-500', icon: CheckCircle },
-  cancelled: { label: 'Cancelada', color: 'bg-red-500', icon: XCircle },
-  completed: { label: 'Concluída', color: 'bg-blue-500', icon: CheckCircle },
+const toneClass: Record<string, string> = {
+  wait: 'bg-lane/25 text-foreground',
+  ok: 'bg-primary/10 text-primary',
+  done: 'bg-muted text-foreground',
+  off: 'bg-muted text-muted-foreground line-through',
 }
 
 export default function MyBookingsPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+  const [reviewing, setReviewing] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch('/api/bookings/my', { credentials: 'include' })
+      const data = await response.json()
+      setBookings(data.bookings || [])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (authLoading) return
-    
     if (!isAuthenticated) {
-      router.push('/auth/signin')
+      router.replace('/auth/signin?redirect=%2Fprofile%2Fbookings')
       return
     }
+    load()
+  }, [authLoading, isAuthenticated, load, router])
 
-    fetchBookings()
-  }, [isAuthenticated, authLoading])
-
-  const fetchBookings = async () => {
+  const cancel = async (b: Booking) => {
+    const name = b.vehicle ? `${b.vehicle.brand} ${b.vehicle.model}` : 'o carro'
+    if (!window.confirm(`Cancelar a reserva de ${name} (${formatLongDate(b.start_date)})?`)) return
+    setBusy(b.id)
+    setMessage('')
     try {
-      const response = await fetch('/api/bookings/my', {
-        credentials: 'include'
-      })
-      const data = await response.json()
-      setBookings(data.bookings || [])
-    } catch (error) {
-      console.error('Erro ao buscar reservas:', error)
+      const response = await fetch(`/api/bookings/${b.id}/cancel`, { method: 'POST' })
+      const result = await response.json().catch(() => ({}))
+      setMessage(response.ok ? 'Reserva cancelada.' : result.error || 'Não foi possível cancelar.')
+      if (response.ok) await load()
     } finally {
-      setIsLoading(false)
+      setBusy(null)
     }
   }
 
-  if (authLoading || isLoading) {
+  if (authLoading || loading) {
     return (
-      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <main className="container flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-label="Carregando" />
+      </main>
     )
   }
 
+  const today = todayIso()
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Minhas Reservas</h1>
-        <p className="text-muted-foreground">Gerencie suas reservas de veículos</p>
-      </div>
+    <main className="container max-w-4xl py-10">
+      <h1 className="text-3xl font-bold">Minhas reservas</h1>
+      {message && <p role="status" className="mt-4 rounded-md bg-muted p-3 text-sm">{message}</p>}
 
       {bookings.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Car className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium mb-2">Nenhuma reserva encontrada</p>
-            <p className="text-muted-foreground mb-4">Você ainda não fez nenhuma reserva</p>
-            <Button onClick={() => router.push('/')}>Ver Veículos</Button>
-          </CardContent>
-        </Card>
+        <div className="mt-8 rounded-lg border p-6">
+          <p className="font-medium">Você ainda não tem reservas.</p>
+          <Button asChild className="mt-4"><Link href="/">Escolher um carro</Link></Button>
+        </div>
       ) : (
-        <div className="grid gap-6">
-          {bookings.map((booking) => {
-            const StatusIcon = statusConfig[booking.status as keyof typeof statusConfig]?.icon || Clock
-            const statusLabel = statusConfig[booking.status as keyof typeof statusConfig]?.label || booking.status
-            const statusColor = statusConfig[booking.status as keyof typeof statusConfig]?.color || 'bg-gray-500'
-
+        <ul className="mt-8 grid gap-4">
+          {bookings.map((b) => {
+            const status = BOOKING_STATUS[b.status] ?? { label: b.status, tone: 'done' as const }
+            const image = b.vehicle?.images?.[0] || b.vehicle?.image_url
+            const canCancel = ['pending', 'confirmed'].includes(b.status) && b.start_date > today
+            const canReview = b.status === 'completed' && !(b.reviews && b.reviews.length)
             return (
-              <Card key={booking.id}>
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row gap-6">
-                    {/* Imagem do veículo */}
-                    {booking.vehicle.images && booking.vehicle.images.length > 0 && (
-                      <div className="relative h-48 md:h-auto md:w-64 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={booking.vehicle.images[0]}
-                          alt={`${booking.vehicle.brand} ${booking.vehicle.model}`}
-                          fill
-                          className="object-cover"
-                        />
+              <li key={b.id} className="overflow-hidden rounded-lg border bg-card">
+                <div className="flex flex-col gap-4 p-4 sm:flex-row">
+                  <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-md bg-muted sm:w-44">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {image && <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-lg font-bold">
+                          {b.vehicle ? (
+                            <Link href={`/vehicles/${b.vehicle.id}`} className="hover:text-primary">{b.vehicle.brand} {b.vehicle.model}</Link>
+                          ) : 'Carro removido da frota'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Código {b.id.slice(0, 8).toUpperCase()}</p>
                       </div>
-                    )}
-
-                    {/* Informações */}
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="text-xl font-semibold">
-                            {booking.vehicle.brand} {booking.vehicle.model}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">Placa: {booking.vehicle.plate}</p>
-                        </div>
-                        <Badge className={`${statusColor} text-white`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusLabel}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">Retirada</p>
-                            <p className="text-muted-foreground">
-                              {format(new Date(booking.start_date), "dd 'de' MMMM", { locale: ptBR })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">Devolução</p>
-                            <p className="text-muted-foreground">
-                              {format(new Date(booking.end_date), "dd 'de' MMMM", { locale: ptBR })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">Valor Total</p>
-                            <p className="text-lg font-bold text-green-600">
-                              R$ {booking.total_amount.toLocaleString('pt-BR')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-xs text-muted-foreground">
-                        Reservado em {format(new Date(booking.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      <span className={`rounded-md px-2 py-1 text-sm font-medium ${toneClass[status.tone]}`}>{status.label}</span>
+                    </div>
+                    <p className="text-sm">
+                      {formatLongDate(b.start_date)} até {formatLongDate(b.end_date)}
+                    </p>
+                    <div className="mt-auto flex flex-wrap items-end justify-between gap-3">
+                      <p>
+                        <span className="text-xl font-bold">{formatBRL(Number(b.total_amount))}</span>
+                        <span className="ml-2 text-sm text-muted-foreground">{pluralDays(rentalDays(b.start_date, b.end_date))}</span>
+                      </p>
+                      <div className="flex gap-2">
+                        {canReview && (
+                          <Button variant="outline" size="sm" onClick={() => setReviewing(reviewing === b.id ? null : b.id)}>
+                            Avaliar o carro
+                          </Button>
+                        )}
+                        {canCancel && (
+                          <Button variant="outline" size="sm" disabled={busy === b.id} onClick={() => cancel(b)}
+                            className="text-destructive hover:text-destructive">
+                            {busy === b.id ? 'Cancelando...' : 'Cancelar reserva'}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                {reviewing === b.id && b.vehicle && (
+                  <div className="border-t p-4">
+                    <ReviewForm bookingId={b.id} vehicleId={b.vehicle.id} onSuccess={() => { setReviewing(null); setMessage('Avaliação enviada. Ela aparece no site depois da moderação.'); load() }} />
+                  </div>
+                )}
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
-    </div>
+    </main>
   )
 }

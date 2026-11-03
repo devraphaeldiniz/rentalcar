@@ -1,123 +1,89 @@
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { requireUser } from '@/lib/auth/authorization'
+import { requireUser, adminGraphql } from '@/lib/auth/authorization'
+import { BOOKING_STATUS, formatBRL, formatLongDate, pluralDays, rentalDays } from '@/lib/rental'
 
-async function getBooking(id: string, userId: string) {
-  try {
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
-      },
-      body: JSON.stringify({
-        query: `
-          query GetBooking($id: uuid!, $userId: uuid!) {
-            bookings(where: { id: { _eq: $id }, user_id: { _eq: $userId } }, limit: 1) {
-              id
-              start_date
-              end_date
-              total_amount
-              status
-              customer_name
-              customer_email
-              customer_phone
-              created_at
-              vehicle_id
-            }
-          }
-        `,
-        variables: { id, userId }
-      }),
-      cache: 'no-store'
-    })
-
-    const result = await response.json()
-    // Só o dono da reserva consegue ver a confirmação.
-    return result.data?.bookings?.[0] || null
-  } catch (error) {
-    return null
-  }
+type Booking = {
+  id: string
+  start_date: string
+  end_date: string
+  total_amount: number
+  status: string
+  vehicle: { brand: string; model: string; images: string[] | null; image_url: string | null } | null
 }
 
-export default async function BookingConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function BookingConfirmationPage({ params }: { params: { id: string } }) {
   const user = await requireUser()
-  const booking = user ? await getBooking(id, user.userId) : null
+  if (!user) notFound()
 
-  if (!booking) {
-    notFound()
-  }
+  const data = await adminGraphql<{ bookings: Booking[] }>(
+    `query MyBooking($id: uuid!, $userId: uuid!) {
+      bookings(where: { id: { _eq: $id }, user_id: { _eq: $userId } }, limit: 1) {
+        id start_date end_date total_amount status
+        vehicle { brand model images image_url }
+      }
+    }`,
+    { id: params.id, userId: user.userId },
+  ).catch(() => ({ bookings: [] as Booking[] }))
+
+  // Só o dono da reserva vê esta página.
+  const booking = data.bookings[0]
+  if (!booking) notFound()
+
+  const days = rentalDays(booking.start_date, booking.end_date)
+  const status = BOOKING_STATUS[booking.status]?.label ?? booking.status
+  const image = booking.vehicle?.images?.[0] || booking.vehicle?.image_url
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-2xl">
-      <div className="text-center mb-8">
-        <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-        <h1 className="text-3xl font-bold mb-2">Reserva confirmada!</h1>
-        <p className="text-muted-foreground">
-          {booking.customer_email ? `Enviamos os detalhes para ${booking.customer_email}` : 'Os detalhes estão em Minhas Reservas.'}
-        </p>
-      </div>
+    <main className="container max-w-2xl py-12">
+      <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden />
+      <h1 className="mt-4 text-3xl font-bold">Reserva registrada</h1>
+      <p className="mt-2 text-muted-foreground">
+        Ela fica como &ldquo;{status.toLowerCase()}&rdquo; até a loja confirmar. Você acompanha tudo em Minhas reservas.
+      </p>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Detalhes da Reserva</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Código da reserva</p>
-            <p className="font-mono font-semibold">{booking.id.slice(0, 8).toUpperCase()}</p>
+      <section className="mt-8 overflow-hidden rounded-lg border">
+        {image && (
+          <div className="relative aspect-[16/7] bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        )}
+        <dl className="grid gap-4 p-5 sm:grid-cols-2">
+          <div>
+            <dt className="text-sm text-muted-foreground">Carro</dt>
+            <dd className="font-bold">{booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted-foreground">Código</dt>
+            <dd className="font-bold tracking-wide">{booking.id.slice(0, 8).toUpperCase()}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted-foreground">Retirada</dt>
+            <dd className="font-medium">{formatLongDate(booking.start_date)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-muted-foreground">Devolução</dt>
+            <dd className="font-medium">{formatLongDate(booking.end_date)}</dd>
+          </div>
+          <div className="sm:col-span-2 flex items-end justify-between border-t pt-4">
             <div>
-              <p className="text-sm text-muted-foreground">Retirada</p>
-              <p className="font-semibold">
-                {format(new Date(booking.start_date), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-              </p>
+              <dt className="text-sm text-muted-foreground">Total</dt>
+              <dd className="text-sm text-muted-foreground">{pluralDays(days)}, pagamento na retirada</dd>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Devolução</p>
-              <p className="font-semibold">
-                {format(new Date(booking.end_date), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-              </p>
-            </div>
+            <dd className="text-2xl font-bold"><span className="bg-lane/30 px-1 -mx-1 rounded-sm">{formatBRL(Number(booking.total_amount))}</span></dd>
           </div>
+        </dl>
+      </section>
 
-          <div>
-            <p className="text-sm text-muted-foreground">Cliente</p>
-            <p className="font-semibold">{booking.customer_name}</p>
-          </div>
+      <p className="mt-6 text-sm text-muted-foreground">Na retirada, leve documento com foto e CNH válida.</p>
 
-          <div>
-            <p className="text-sm text-muted-foreground">Telefone</p>
-            <p className="font-semibold">{booking.customer_phone}</p>
-          </div>
-
-          <div className="pt-4 border-t">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold">Valor Total</span>
-              <span className="text-2xl font-bold">R$ {booking.total_amount.toFixed(2)}</span>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Status: {booking.status === 'pending' ? 'Aguardando pagamento' : 'Confirmado'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="mt-8 flex gap-4 justify-center">
-        <Button asChild>
-          <Link href="/">Voltar para início</Link>
-        </Button>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Button asChild><Link href="/profile/bookings">Ver minhas reservas</Link></Button>
+        <Button asChild variant="outline"><Link href="/">Voltar aos carros</Link></Button>
       </div>
-    </div>
+    </main>
   )
 }

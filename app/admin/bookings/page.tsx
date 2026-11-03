@@ -21,8 +21,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatBRL } from '@/lib/rental'
 
 type Booking = {
   id: string
@@ -178,16 +179,16 @@ export default function BookingsAdminPage() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{format(new Date(booking.start_date), "dd/MM/yyyy", { locale: ptBR })}</div>
+                        <div>{format(parseISO(booking.start_date), "dd/MM/yyyy", { locale: ptBR })}</div>
                         <div className="text-muted-foreground">
-                          até {format(new Date(booking.end_date), "dd/MM/yyyy", { locale: ptBR })}
+                          até {format(parseISO(booking.end_date), "dd/MM/yyyy", { locale: ptBR })}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <DollarSign className="h-4 w-4 text-green-600" />
-                        <span className="font-semibold">R$ {booking.total_amount.toLocaleString('pt-BR')}</span>
+                        <span className="font-semibold">{formatBRL(Number(booking.total_amount))}</span>
                       </div>
                     </TableCell>
                     <TableCell>

@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export function exportBookingsToPDF(bookings: any[], title: string) {
@@ -17,8 +17,8 @@ export function exportBookingsToPDF(bookings: any[], title: string) {
   const tableData = bookings.map(booking => [
     booking.user?.email || '-',
     `${booking.vehicle?.brand} ${booking.vehicle?.model}`,
-    format(new Date(booking.start_date), 'dd/MM/yyyy', { locale: ptBR }),
-    format(new Date(booking.end_date), 'dd/MM/yyyy', { locale: ptBR }),
+    format(parseISO(booking.start_date), 'dd/MM/yyyy', { locale: ptBR }),
+    format(parseISO(booking.end_date), 'dd/MM/yyyy', { locale: ptBR }),
     `R$ ${booking.total_amount.toLocaleString('pt-BR')}`,
     booking.status,
   ])

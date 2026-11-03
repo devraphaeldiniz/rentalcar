@@ -22,8 +22,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatBRL } from '@/lib/rental'
 
 type BookingDetails = {
   id: string
@@ -101,8 +102,8 @@ export default function BookingDetailsPage() {
 
   const calculateDays = () => {
     if (!booking) return 0
-    const start = new Date(booking.start_date)
-    const end = new Date(booking.end_date)
+    const start = parseISO(booking.start_date)
+    const end = parseISO(booking.end_date)
     const diffTime = Math.abs(end.getTime() - start.getTime())
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   }
@@ -256,7 +257,7 @@ export default function BookingDetailsPage() {
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">
-                  {format(new Date(booking.start_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {format(parseISO(booking.start_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </p>
                 <p className="text-sm text-muted-foreground">Data de retirada</p>
               </div>
@@ -266,7 +267,7 @@ export default function BookingDetailsPage() {
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">
-                  {format(new Date(booking.end_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {format(parseISO(booking.end_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </p>
                 <p className="text-sm text-muted-foreground">Data de devolução</p>
               </div>
@@ -291,7 +292,7 @@ export default function BookingDetailsPage() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Diária</span>
-              <span className="font-medium">R$ {booking.vehicle.daily_rate.toLocaleString('pt-BR')}</span>
+              <span className="font-medium">{formatBRL(Number(booking.vehicle.daily_rate))}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Quantidade de diárias</span>
@@ -301,7 +302,7 @@ export default function BookingDetailsPage() {
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold">Total</span>
               <span className="text-2xl font-bold text-green-600">
-                R$ {booking.total_amount.toLocaleString('pt-BR')}
+                {formatBRL(Number(booking.total_amount))}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

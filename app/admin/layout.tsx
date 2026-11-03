@@ -46,7 +46,7 @@ export default function AdminLayout({
     <div className="flex h-screen bg-background">
       <aside className="w-64 bg-card border-r flex flex-col">
         <div className="p-6 border-b flex items-center justify-between">
-          <h1 className="text-xl font-bold">Admin Panel</h1>
+          <Link href="/" className="text-xl font-bold hover:text-primary" title="Abrir o site">RentalCar</Link>
           <ThemeToggle />
         </div>
         

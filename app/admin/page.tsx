@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, Car, Calendar, TrendingUp, Clock } from 'lucide-react'
+import { formatBRL } from '@/lib/rental'
 
 type Stats = {
   totalRevenue: number
@@ -51,7 +52,7 @@ export default function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {stats.totalRevenue.toLocaleString('pt-BR')}</div>
+            <div className="text-2xl font-bold">{formatBRL(Number(stats.totalRevenue))}</div>
             <p className="text-xs text-muted-foreground">Total de receitas</p>
           </CardContent>
         </Card>
@@ -102,12 +103,12 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Crescimento</CardTitle>
+            <CardTitle className="text-sm font-medium">Ticket médio</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12%</div>
-            <p className="text-xs text-muted-foreground">vs. mês anterior</p>
+            <div className="text-2xl font-bold">{formatBRL(stats.totalBookings ? stats.totalRevenue / stats.totalBookings : 0)}</div>
+            <p className="text-xs text-muted-foreground">Valor médio por reserva</p>
           </CardContent>
         </Card>
       </div>

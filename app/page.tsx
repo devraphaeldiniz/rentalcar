@@ -84,7 +84,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       </section>
 
       <section id="carros" className="container scroll-mt-20 py-12">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-4">
           <div>
             <h2 className="text-3xl font-bold">
               {range ? `${formatShortDate(range.start)} a ${formatShortDate(range.end)}` : 'Nossa frota'}
@@ -130,7 +130,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         ) : (
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles.map((v) => (
-              <VehicleCard key={v.id} vehicle={v} range={range} unavailable={catalog!.busy.has(v.id)} />
+              <VehicleCard key={v.id} vehicle={v} range={range} unavailable={catalog!.busy.has(v.id)} category={category} />
             ))}
           </div>
         )}

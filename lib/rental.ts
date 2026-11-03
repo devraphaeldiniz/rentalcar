@@ -58,3 +58,18 @@ const shortDate = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'sho
 export const formatShortDate = (iso: string) => shortDate.format(new Date(`${iso}T00:00:00Z`)).replace('.', '')
 
 export const pluralDays = (n: number) => `${n} ${n === 1 ? 'diária' : 'diárias'}`
+
+const longDate = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })
+/** Datas de reserva são dias de calendário: formatar em UTC evita mostrar o dia anterior no Brasil. */
+export const formatLongDate = (iso: string) => {
+  const s = longDate.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`))
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+export const BOOKING_STATUS: Record<string, { label: string; tone: 'wait' | 'ok' | 'done' | 'off' }> = {
+  pending: { label: 'Aguardando confirmação', tone: 'wait' },
+  confirmed: { label: 'Confirmada', tone: 'ok' },
+  active: { label: 'Em andamento', tone: 'ok' },
+  completed: { label: 'Concluída', tone: 'done' },
+  cancelled: { label: 'Cancelada', tone: 'off' },
+}

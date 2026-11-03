@@ -16,7 +16,7 @@ export async function GET() {
       body: JSON.stringify({
         query: `
           query GetDashboardStats {
-            bookings_aggregate {
+            bookings_aggregate(where: { status: { _neq: "cancelled" } }) {
               aggregate {
                 count
                 sum {
