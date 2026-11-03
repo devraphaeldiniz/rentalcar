@@ -6,20 +6,28 @@ import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
 import { isIsoDate } from '@/lib/rental'
+import { computeQuote, QuoteError } from '@/lib/pricing'
+import { getActiveExtras } from '@/lib/extras-server'
 import { SESSION_COOKIE, VISITOR_COOKIE, deviceFrom, recordEvent, validId } from '@/lib/analytics/server'
 
 const bookingInput = z.object({
   vehicle_id: z.string().uuid(),
   start_date: z.string().refine(isIsoDate),
   end_date: z.string().refine(isIsoDate),
+  protection: z.string().max(40).optional(),
+  addons: z.array(z.string().max(40)).max(10).optional(),
+  accept_terms: z.literal(true, { message: 'Aceite os termos da locação para continuar.' }),
 })
 
 export async function POST(req: NextRequest) {
   try {
     const parsed = bookingInput.safeParse(await req.json())
-    if (!parsed.success) return NextResponse.json({ error: 'Dados de reserva inválidos' }, { status: 400 })
+    if (!parsed.success) {
+      const termsIssue = parsed.error.issues.find((i) => i.path[0] === 'accept_terms')
+      return NextResponse.json({ error: termsIssue?.message ?? 'Dados de reserva inválidos' }, { status: 400 })
+    }
 
-    const { vehicle_id, start_date, end_date } = parsed.data
+    const { vehicle_id, start_date, end_date, protection, addons } = parsed.data
     const start = new Date(`${start_date}T00:00:00Z`)
     const end = new Date(`${end_date}T00:00:00Z`)
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000)
@@ -43,11 +51,21 @@ export async function POST(req: NextRequest) {
     const vehicle = vehicleResult.data?.vehicles_by_pk
     if (!vehicle || vehicle.status !== 'available') return NextResponse.json({ error: 'Veículo indisponível' }, { status: 409 })
 
-    const total_amount = Number(vehicle.daily_rate) * days
+    // O valor é sempre recalculado aqui, com os preços atuais do banco.
+    let quote: ReturnType<typeof computeQuote>
+    try {
+      quote = computeQuote({ dailyRate: Number(vehicle.daily_rate), days, extras: await getActiveExtras(), protectionCode: protection, addonCodes: addons })
+    } catch (error) {
+      if (error instanceof QuoteError) return NextResponse.json({ error: error.message }, { status: 400 })
+      throw error
+    }
+    const total_amount = quote.total
     const bookingResponse = await fetch(url, { method: 'POST', headers, body: JSON.stringify({
       query: `mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount } }`,
       variables: { object: {
         user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending',
+        base_amount: quote.base, extras_amount: quote.extras, discount_amount: quote.discount,
+        price_lines: quote.lines, terms_accepted_at: new Date().toISOString(),
         customer_email: auth.email, customer_name: auth.user.displayName ?? null,
       } },
     }) })
@@ -68,7 +86,7 @@ export async function POST(req: NextRequest) {
       resourceId: booking?.id,
       ipAddress: await getClientIP(),
       userAgent: await getUserAgent(),
-      metadata: { vehicle_id, start_date, end_date, total_amount },
+      metadata: { vehicle_id, start_date, end_date, total_amount, protection: quote.protection, addons: quote.addons },
     })
     // Funil do painel: só registra se a pessoa aceitou o monitoramento (o cookie da visita existe).
     const sid = req.cookies.get(SESSION_COOKIE)?.value
@@ -80,7 +98,7 @@ export async function POST(req: NextRequest) {
         user_id,
         event: 'booking_created',
         vehicle_id,
-        meta: { days, total: total_amount },
+        meta: { days, total: total_amount, protection: quote.protection, addons: quote.addons.length },
         device: deviceFrom(req.headers.get('user-agent')),
       }).catch((error) => console.error('[track] booking_created', error))
     }

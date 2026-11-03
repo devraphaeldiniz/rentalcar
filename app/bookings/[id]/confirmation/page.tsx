@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
+import type { PriceLine } from '@/lib/pricing'
 import { BOOKING_STATUS, formatBRL, formatLongDate, pluralDays, rentalDays } from '@/lib/rental'
 
 type Booking = {
@@ -11,6 +12,7 @@ type Booking = {
   end_date: string
   total_amount: number
   status: string
+  price_lines: PriceLine[] | null
   vehicle: { brand: string; model: string; images: string[] | null; image_url: string | null } | null
 }
 
@@ -22,7 +24,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
   const data = await adminGraphql<{ bookings: Booking[] }>(
     `query MyBooking($id: uuid!, $userId: uuid!) {
       bookings(where: { id: { _eq: $id }, user_id: { _eq: $userId } }, limit: 1) {
-        id start_date end_date total_amount status
+        id start_date end_date total_amount status price_lines
         vehicle { brand model images image_url }
       }
     }`,
@@ -45,7 +47,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
         Ela fica como &ldquo;{status.toLowerCase()}&rdquo; até a loja confirmar. Você acompanha tudo em Minhas reservas.
       </p>
 
-      <section className="mt-8 overflow-hidden rounded-lg border">
+      <section className="mt-8 overflow-hidden rounded-2xl border bg-card">
         {image && (
           <div className="relative aspect-[16/7] bg-muted">
             <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -76,6 +78,16 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
             <dd className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(Number(booking.total_amount))}</span></dd>
           </div>
         </dl>
+        {booking.price_lines && booking.price_lines.length > 1 && (
+          <ul className="space-y-2 border-t p-5 text-sm">
+            {booking.price_lines.map((l) => (
+              <li key={l.code} className="flex justify-between gap-3">
+                <span className={l.kind === 'discount' ? 'text-success' : 'text-muted-foreground'}>{l.label}</span>
+                <span className={`tabular ${l.kind === 'discount' ? 'text-success' : ''}`}>{l.amount === 0 ? 'Incluída' : formatBRL(l.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <p className="mt-6 text-sm text-muted-foreground">Na retirada, leve documento com foto e CNH válida.</p>

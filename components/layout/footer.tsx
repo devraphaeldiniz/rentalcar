@@ -18,6 +18,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
     title: 'AstaCar',
     links: [
       ['/sobre', 'Sobre o projeto'],
+      ['/termos', 'Termos da locação'],
       ['/privacidade', 'Privacidade e cookies'],
       ['/creditos', 'Créditos das fotos'],
     ],
