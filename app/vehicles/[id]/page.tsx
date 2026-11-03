@@ -6,6 +6,7 @@ import { adminGraphql } from '@/lib/auth/authorization'
 import { VehicleGallery } from '@/components/client/vehicle-gallery'
 import { ReserveBox } from '@/components/client/reserve-box'
 import { ReviewList } from '@/components/reviews/review-list'
+import { TrackVehicleView } from '@/components/analytics/track-view'
 import { CATEGORY_LABELS, parseRange } from '@/lib/rental'
 
 type Vehicle = {
@@ -78,6 +79,7 @@ export default async function VehicleDetailPage(props: {
 
   return (
     <main className="container py-8">
+      <TrackVehicleView vehicleId={vehicle.id} category={vehicle.category} dailyRate={Number(vehicle.daily_rate)} />
       <Link href={backHref} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Voltar para os carros
       </Link>

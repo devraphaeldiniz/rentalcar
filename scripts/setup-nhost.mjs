@@ -93,7 +93,7 @@ async function migrate() {
 }
 
 // ---------- 2. metadata do Hasura ----------
-const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages']
+const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages', 'analytics_events']
 const AUTH_USERS = { schema: 'auth', name: 'users' }
 const t = (name) => ({ schema: 'public', name })
 
@@ -105,6 +105,7 @@ const OBJECT_RELS = [
   ['reviews', 'booking', { foreign_key_constraint_on: 'booking_id' }],
   ['reviews', 'user', { manual_configuration: { remote_table: AUTH_USERS, column_mapping: { user_id: 'id' } } }],
   ['audit_logs', 'user', { manual_configuration: { remote_table: AUTH_USERS, column_mapping: { user_id: 'id' } } }],
+  ['analytics_events', 'vehicle', { foreign_key_constraint_on: 'vehicle_id' }],
 ]
 
 const ARRAY_RELS = [

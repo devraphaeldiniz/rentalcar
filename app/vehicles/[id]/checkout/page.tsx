@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { dateInputClass } from '@/components/client/reserve-box'
+import { CheckoutFeedback } from '@/components/client/checkout-feedback'
+import { track } from '@/lib/analytics/client'
 import {
   addDaysIso,
   CATEGORY_LABELS,
@@ -71,6 +73,14 @@ export default function CheckoutPage() {
   const days = rentalDays(start, end)
   const validPeriod = start >= today && days >= 1 && days <= MAX_RENTAL_DAYS
   const rate = Number(vehicle?.daily_rate ?? 0)
+
+  // Funil: marca uma vez que a pessoa chegou à revisão da reserva.
+  const startTracked = useRef(false)
+  useEffect(() => {
+    if (startTracked.current || !vehicle || !isAuthenticated) return
+    startTracked.current = true
+    track('start_checkout', { vehicleId: vehicle.id, meta: { days, total: Number(vehicle.daily_rate) * days, category: vehicle.category } })
+  }, [vehicle, isAuthenticated, days])
 
   const confirm = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -171,6 +181,8 @@ export default function CheckoutPage() {
               <Link href="/profile" className="text-electric hover:underline">Atualizar meus dados</Link>
             </p>
           </section>
+
+          <CheckoutFeedback vehicleId={vehicle.id} days={validPeriod ? days : 0} total={validPeriod ? rate * days : 0} />
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start rounded-2xl border bg-card p-6 shadow-xl shadow-black/10">

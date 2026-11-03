@@ -4,6 +4,8 @@ import "./globals.css"
 import { ThemeProvider } from "@/lib/contexts/theme-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
+import { CookieConsent } from "@/components/analytics/cookie-consent"
+import { PageTracker } from "@/components/analytics/page-tracker"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,6 +44,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <div className="flex-1">{children}</div>
           <Footer />
+          <CookieConsent />
+          <PageTracker />
         </ThemeProvider>
       </body>
     </html>
