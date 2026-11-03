@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatBRL } from '@/lib/rental'
+import { PricingRulesEditor } from '@/components/admin/pricing-rules-editor'
+import { CouponsEditor } from '@/components/admin/coupons-editor'
 
 type Extra = {
   id: string
@@ -152,6 +154,18 @@ export default function PricesPage() {
           </section>
         ))
       )}
+
+      <section>
+        <h2 className="text-xl font-bold">Preço inteligente</h2>
+        <p className="text-sm text-muted-foreground">Ajustes automáticos sobre as diárias. Aparecem no catálogo e no checkout.</p>
+        <div className="mt-4"><PricingRulesEditor /></div>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-bold">Cupons de desconto</h2>
+        <p className="text-sm text-muted-foreground">O desconto do cupom vale sobre as diárias, depois do desconto por duração.</p>
+        <div className="mt-4"><CouponsEditor /></div>
+      </section>
     </div>
   )
 }

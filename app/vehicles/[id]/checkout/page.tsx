@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, TicketPercent, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -59,6 +59,11 @@ export default function CheckoutPage() {
   const [protection, setProtection] = useState('')
   const [addons, setAddons] = useState<string[]>([])
   const [acceptTerms, setAcceptTerms] = useState(false)
+  const [couponInput, setCouponInput] = useState(search.get('cupom') ?? '')
+  const [coupon, setCoupon] = useState(search.get('cupom') ?? '')
+  const [couponError, setCouponError] = useState('')
+  const [serverQuote, setServerQuote] = useState<Quote | null>(null)
+  const [quoting, setQuoting] = useState(false)
 
   useEffect(() => {
     fetch('/api/extras')
@@ -91,13 +96,52 @@ export default function CheckoutPage() {
   const validPeriod = start >= today && days >= 1 && days <= MAX_RENTAL_DAYS
   const rate = Number(vehicle?.daily_rate ?? 0)
 
-  let quote: Quote | null = null
+  // Valor oficial vem do servidor (temporada, desconto por duração e cupom);
+  // o cálculo local só cobre o instante entre um clique e a resposta.
+  let localQuote: Quote | null = null
   if (vehicle && validPeriod) {
     try {
-      quote = computeQuote({ dailyRate: rate, days, extras, protectionCode: protection || null, addonCodes: addons })
+      localQuote = computeQuote({ dailyRate: rate, days, extras, protectionCode: protection || null, addonCodes: addons })
     } catch {
-      quote = null
+      localQuote = null
     }
+  }
+  const quote = serverQuote ?? localQuote
+
+  const addonsKey = addons.join(',')
+  useEffect(() => {
+    if (!vehicle || !validPeriod) { setServerQuote(null); return }
+    let cancelled = false
+    setQuoting(true)
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch('/api/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vehicle_id: vehicle.id, start_date: start, end_date: end,
+            protection: protection || undefined, addons: addonsKey ? addonsKey.split(',') : [], coupon: coupon || undefined,
+          }),
+        })
+        const d = await r.json().catch(() => ({}))
+        if (cancelled) return
+        if (r.ok) {
+          setServerQuote(d.quote)
+          if (d.couponError) { setCouponError(d.couponError); setCoupon('') } else if (coupon) setCouponError('')
+        } else setServerQuote(null)
+      } catch {
+        if (!cancelled) setServerQuote(null)
+      } finally {
+        if (!cancelled) setQuoting(false)
+      }
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [vehicle, validPeriod, start, end, protection, addonsKey, coupon])
+
+  const applyCoupon = () => {
+    const code = couponInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+    setCouponError('')
+    setCoupon(code)
   }
   const toggleAddon = (code: string) => setAddons((list) => (list.includes(code) ? list.filter((c) => c !== code) : [...list, code]))
 
@@ -122,7 +166,7 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end, protection: protection || undefined, addons, accept_terms: acceptTerms }),
+        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end, protection: protection || undefined, addons, coupon: coupon || undefined, accept_terms: acceptTerms }),
       })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) {
@@ -259,14 +303,39 @@ export default function CheckoutPage() {
                       <span className={l.kind === 'discount' ? 'text-success' : ''}>{l.label}</span>
                       <span className="block text-xs text-muted-foreground">{l.detail}</span>
                     </span>
-                    <span className={`tabular shrink-0 ${l.kind === 'discount' ? 'text-success' : ''}`}>
+                    <span className={`tabular shrink-0 ${l.kind === 'discount' || l.amount < 0 ? 'text-success' : ''}`}>
                       {l.amount === 0 ? 'Incluída' : formatBRL(l.amount)}
                     </span>
                   </li>
                 ))}
               </ul>
+              <div className="mt-4 border-t pt-4">
+                {coupon && !couponError ? (
+                  <p className="flex items-center justify-between rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+                    <span className="flex items-center gap-2"><TicketPercent className="h-4 w-4" aria-hidden /> Cupom {coupon} aplicado</span>
+                    <button type="button" onClick={() => { setCoupon(''); setCouponInput('') }} aria-label="Remover cupom" className="rounded p-0.5 hover:bg-success/20">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <label htmlFor="cupom" className="sr-only">Cupom de desconto</label>
+                    <input
+                      id="cupom"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon() } }}
+                      placeholder="Cupom de desconto"
+                      maxLength={20}
+                      className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm uppercase placeholder:normal-case focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <Button type="button" variant="outline" onClick={applyCoupon} disabled={!couponInput.trim()}>Aplicar</Button>
+                  </div>
+                )}
+                {couponError && <p role="alert" className="mt-2 text-sm text-destructive">{couponError}</p>}
+              </div>
               <div className="mt-4 flex items-end justify-between border-t pt-4">
-                <span className="font-medium">Total</span>
+                <span className="flex items-center gap-2 font-medium">Total {quoting && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Atualizando" />}</span>
                 <span className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(quote.total)}</span></span>
               </div>
             </>

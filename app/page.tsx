@@ -3,6 +3,7 @@ import { adminGraphql } from '@/lib/auth/authorization'
 import { BadgeCheck, CalendarRange, Car, ReceiptText, Wallet, XCircle, Zap } from 'lucide-react'
 import { BookingSearch } from '@/components/client/booking-search'
 import { categoryIcon } from '@/lib/category-icons'
+import { getActiveRules, periodPrice } from '@/lib/quote-server'
 import { VehicleCard, type CatalogVehicle } from '@/components/client/vehicle-card'
 import {
   CATEGORY_LABELS,
@@ -58,11 +59,12 @@ export default async function HomePage(props: { searchParams: Promise<SearchPara
   const category = searchParams.categoria && CATEGORY_LABELS[searchParams.categoria] ? searchParams.categoria : undefined
 
   let catalog: Awaited<ReturnType<typeof getCatalog>> | null = null
-  try {
-    catalog = await getCatalog(range)
-  } catch (error) {
-    console.error('[home] catálogo:', error)
-  }
+  const [catalogResult, rules] = await Promise.all([
+    getCatalog(range).catch((error) => { console.error('[home] catálogo:', error); return null }),
+    // Sem a tabela de regras (banco antigo), a vitrine mostra o preço cheio.
+    range ? getActiveRules().catch(() => []) : Promise.resolve([]),
+  ])
+  catalog = catalogResult
 
   const all = catalog?.vehicles ?? []
   const vehicles = category ? all.filter((v) => v.category === category) : all
@@ -168,7 +170,14 @@ export default async function HomePage(props: { searchParams: Promise<SearchPara
         ) : (
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {vehicles.map((v) => (
-              <VehicleCard key={v.id} vehicle={v} range={range} unavailable={catalog!.busy.has(v.id)} category={category} />
+              <VehicleCard
+                key={v.id}
+                vehicle={v}
+                range={range}
+                price={range ? periodPrice(Number(v.daily_rate), range.start, range.end, rules) : undefined}
+                unavailable={catalog!.busy.has(v.id)}
+                category={category}
+              />
             ))}
           </div>
         )}
