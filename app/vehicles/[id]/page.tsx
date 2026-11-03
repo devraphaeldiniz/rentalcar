@@ -1,3 +1,5 @@
+import { cache } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Star } from 'lucide-react'
@@ -9,7 +11,8 @@ import { ReviewList } from '@/components/reviews/review-list'
 import { TrackVehicleView } from '@/components/analytics/track-view'
 import { getBanners } from '@/lib/banners'
 import { PromoBanner } from '@/components/client/promo-banner'
-import { CATEGORY_LABELS, parseRange } from '@/lib/rental'
+import { CATEGORY_LABELS, formatBRL, parseRange } from '@/lib/rental'
+import { SITE_URL } from '@/lib/site'
 
 type Vehicle = {
   id: string
@@ -35,7 +38,8 @@ type Vehicle = {
   total_reviews: number | null
 }
 
-async function getVehicle(id: string) {
+// cache: a página e os metadados usam a mesma consulta, feita uma vez só.
+const getVehicle = cache(async (id: string) => {
   if (!z.string().uuid().safeParse(id).success) return null
   const data = await adminGraphql<{ vehicles_by_pk: Vehicle | null }>(
     `query VehicleDetail($id: uuid!) {
@@ -49,6 +53,22 @@ async function getVehicle(id: string) {
   )
   const v = data.vehicles_by_pk
   return v && v.status !== 'maintenance' ? v : null
+})
+
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await props.params
+  const v = await getVehicle(id).catch(() => null)
+  if (!v) return { title: 'Carro não encontrado' }
+  const name = `${v.brand} ${v.model} ${v.year}`
+  const category = CATEGORY_LABELS[v.category] ?? v.category
+  const description = `Alugue ${name} (${category}) a partir de ${formatBRL(Number(v.daily_rate))} por diária. Veja o valor total do período e reserve online na AstaCar.`
+  const image = v.images?.[0] || v.image_url
+  return {
+    title: `Aluguel de ${name}`,
+    description,
+    alternates: { canonical: `/vehicles/${v.id}` },
+    openGraph: { title: `Aluguel de ${name} | AstaCar`, description, images: image ? [{ url: image, alt: name }] : undefined },
+  }
 }
 
 export default async function VehicleDetailPage(props: {
@@ -68,6 +88,31 @@ export default async function VehicleDetailPage(props: {
   if (searchParams.categoria && CATEGORY_LABELS[searchParams.categoria]) back.set('categoria', searchParams.categoria)
   const backHref = `/${back.toString() ? `?${back.toString()}` : ''}#carros`
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Car',
+    name,
+    brand: { '@type': 'Brand', name: vehicle.brand },
+    model: vehicle.model,
+    vehicleModelDate: String(vehicle.year),
+    image: images.slice(0, 3),
+    description: vehicle.description ?? undefined,
+    vehicleTransmission: vehicle.transmission ?? undefined,
+    fuelType: vehicle.fuel_type ?? undefined,
+    seatingCapacity: vehicle.passengers ?? undefined,
+    url: `${SITE_URL}/vehicles/${vehicle.id}`,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'BRL',
+      price: Number(vehicle.daily_rate).toFixed(2),
+      priceSpecification: { '@type': 'UnitPriceSpecification', price: Number(vehicle.daily_rate).toFixed(2), priceCurrency: 'BRL', unitText: 'DAY' },
+      availability: vehicle.status === 'available' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+    ...(vehicle.total_reviews
+      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: Number(vehicle.average_rating).toFixed(1), reviewCount: vehicle.total_reviews } }
+      : {}),
+  }
+
   const specs: [string, string | null][] = [
     ['Categoria', CATEGORY_LABELS[vehicle.category] ?? vehicle.category],
     ['Ano', String(vehicle.year)],
@@ -83,6 +128,11 @@ export default async function VehicleDetailPage(props: {
   return (
     <main className="container py-8">
       <TrackVehicleView vehicleId={vehicle.id} category={vehicle.category} dailyRate={Number(vehicle.daily_rate)} />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: dados estruturados para o Google, gerados no servidor e escapados
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <Link href={backHref} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Voltar para os carros
       </Link>
