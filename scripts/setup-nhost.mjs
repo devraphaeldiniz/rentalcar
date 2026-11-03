@@ -77,7 +77,7 @@ async function migrate() {
     if (exists.result?.[1]?.[0] === 't') {
       await sql("INSERT INTO public.schema_migrations (name) VALUES ('001_initial.sql') ON CONFLICT DO NOTHING")
       applied.add('001_initial.sql')
-      console.log('  ✓ 001_initial.sql (banco existente, registrada sem executar)')
+      console.log('  (banco existente: 001_initial.sql registrada sem executar)')
     }
   }
 
