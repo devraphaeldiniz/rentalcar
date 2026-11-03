@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { requireUser } from '@/lib/auth/authorization'
 
-async function getBooking(id: string) {
+async function getBooking(id: string, userId: string) {
   try {
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
     
@@ -18,8 +19,8 @@ async function getBooking(id: string) {
       },
       body: JSON.stringify({
         query: `
-          query GetBooking($id: uuid!) {
-            bookings_by_pk(id: $id) {
+          query GetBooking($id: uuid!, $userId: uuid!) {
+            bookings(where: { id: { _eq: $id }, user_id: { _eq: $userId } }, limit: 1) {
               id
               start_date
               end_date
@@ -33,13 +34,14 @@ async function getBooking(id: string) {
             }
           }
         `,
-        variables: { id }
+        variables: { id, userId }
       }),
       cache: 'no-store'
     })
 
     const result = await response.json()
-    return result.data?.bookings_by_pk || null
+    // Só o dono da reserva consegue ver a confirmação.
+    return result.data?.bookings?.[0] || null
   } catch (error) {
     return null
   }
@@ -47,7 +49,8 @@ async function getBooking(id: string) {
 
 export default async function BookingConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const booking = await getBooking(id)
+  const user = await requireUser()
+  const booking = user ? await getBooking(id, user.userId) : null
 
   if (!booking) {
     notFound()
@@ -59,7 +62,7 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
         <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
         <h1 className="text-3xl font-bold mb-2">Reserva confirmada!</h1>
         <p className="text-muted-foreground">
-          Enviamos os detalhes para {booking.customer_email}
+          {booking.customer_email ? `Enviamos os detalhes para ${booking.customer_email}` : 'Os detalhes estão em Minhas Reservas.'}
         </p>
       </div>
 

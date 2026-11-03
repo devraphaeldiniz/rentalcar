@@ -40,7 +40,7 @@ export default function VehicleDetailPage() {
     try {
       const response = await fetch(`/api/vehicles/${params.id}`)
       const data = await response.json()
-      setVehicle(data)
+      setVehicle(response.ok ? data : null)
     } catch (error) {
       console.error('Error loading vehicle:', error)
     } finally {
