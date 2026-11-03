@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { safeRedirect } from '@/lib/safe-redirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,8 +17,7 @@ export default function SignInPage() {
   const { isAuthenticated: alreadyIn } = useAuth()
   useEffect(() => {
     if (!alreadyIn) return
-    const redirect = new URLSearchParams(window.location.search).get('redirect')
-    window.location.replace(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+    window.location.replace(safeRedirect(new URLSearchParams(window.location.search).get('redirect')))
   }, [alreadyIn])
   const router = useRouter()
   const params = useSearchParams()
@@ -48,8 +48,7 @@ export default function SignInPage() {
       }
 
       // Volta para onde a pessoa estava (só caminhos internos).
-      const redirect = new URLSearchParams(window.location.search).get('redirect')
-      window.location.href = redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/'
+      window.location.href = safeRedirect(new URLSearchParams(window.location.search).get('redirect'))
     } catch (err) {
       setError('Erro ao conectar ao servidor')
     } finally {

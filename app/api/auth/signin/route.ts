@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { authUrl, adminGraphql, cookieOptions, ACCESS_COOKIE, REFRESH_COOKIE, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '@/lib/auth/authorization'
 import { checkLoginRateLimit, recordLoginAttempt } from '@/lib/security/rate-limit'
 import { createAuditLog } from '@/lib/security/audit'

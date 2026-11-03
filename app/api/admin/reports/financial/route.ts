@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/authorization'
 
 export async function GET(req: NextRequest) {
@@ -9,9 +9,6 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
-    console.log('=== FINANCIAL REPORT ===')
-    console.log('Start date:', startDate)
-    console.log('End date:', endDate)
 
     // Receita não conta reservas canceladas.
     let whereClause: Record<string, unknown> = { status: { _neq: 'cancelled' } }
@@ -66,7 +63,6 @@ export async function GET(req: NextRequest) {
     })
 
     const result = await response.json()
-    console.log('GraphQL result:', JSON.stringify(result, null, 2))
 
     if (result.errors) {
       console.error('GraphQL errors:', result.errors)
@@ -109,7 +105,6 @@ export async function GET(req: NextRequest) {
       period: startDate && endDate ? `${startDate} a ${endDate}` : 'Todos os períodos'
     }
 
-    console.log('Sending response:', financialData)
 
     return NextResponse.json(financialData)
   } catch (error: any) {

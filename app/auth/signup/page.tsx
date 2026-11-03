@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { safeRedirect } from '@/lib/safe-redirect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,8 +17,7 @@ export default function SignUpPage() {
   const { isAuthenticated: alreadyIn } = useAuth()
   useEffect(() => {
     if (!alreadyIn) return
-    const redirect = new URLSearchParams(window.location.search).get('redirect')
-    window.location.replace(redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+    window.location.replace(safeRedirect(new URLSearchParams(window.location.search).get('redirect')))
   }, [alreadyIn])
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -34,8 +34,8 @@ export default function SignUpPage() {
     setIsLoading(true)
     setError('')
 
-    if (formData.password.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres')
+    if (formData.password.length < 9) {
+      setError('A senha deve ter pelo menos 9 caracteres')
       setIsLoading(false)
       return
     }
@@ -93,8 +93,10 @@ export default function SignUpPage() {
             )}
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Nome completo</label>
+              <label htmlFor="su-nome" className="text-sm font-medium mb-2 block">Nome completo</label>
               <Input
+                id="su-nome"
+                autoComplete="name"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="João da Silva"
@@ -104,8 +106,10 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">E-mail</label>
+              <label htmlFor="su-email" className="text-sm font-medium mb-2 block">E-mail</label>
               <Input
+                id="su-email"
+                autoComplete="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -116,8 +120,10 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Telefone</label>
+              <label htmlFor="su-telefone" className="text-sm font-medium mb-2 block">Telefone</label>
               <Input
+                id="su-telefone"
+                autoComplete="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="(11) 99999-9999"
@@ -127,18 +133,20 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Senha</label>
+              <label htmlFor="su-senha" className="text-sm font-medium mb-2 block">Senha</label>
               <Input
+                id="su-senha"
+                autoComplete="new-password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Mínimo 9 caracteres"
                 required
-                minLength={8}
+                minLength={9}
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Mínimo 8 caracteres, use letras, números e símbolos
+                Mínimo 9 caracteres. Misture letras, números e símbolos.
               </p>
             </div>
 

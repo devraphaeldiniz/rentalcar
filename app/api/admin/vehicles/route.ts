@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth/authorization'
+import { pickVehicleFields } from '@/lib/vehicle-fields'
 
 export async function GET() {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
             }
           }
         `,
-        variables: { object: data }
+        variables: { object: pickVehicleFields(data) }
       }),
     })
 

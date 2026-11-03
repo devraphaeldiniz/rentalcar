@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Car, Shield, Clock, Users, Star, Award } from 'lucide-react'
 
@@ -137,12 +138,12 @@ export default function SobrePage() {
             Encontre o veículo perfeito para você
           </p>
           
-            <a
+            <Link
               href="/"
               className="inline-block bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-white/90 transition-colors"
             >
               Ver Veículos Disponíveis
-            </a>
+            </Link>
         </div>
       </section>
     </div>

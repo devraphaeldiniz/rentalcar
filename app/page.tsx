@@ -42,7 +42,8 @@ async function getCatalog(range: DateRange | null) {
   }
 }
 
-export default async function HomePage({ searchParams }: { searchParams: SearchParams }) {
+export default async function HomePage(props: { searchParams: Promise<SearchParams> }) {
+  const searchParams = await props.searchParams
   const range = parseRange(searchParams.retirada, searchParams.devolucao)
   const category = searchParams.categoria && CATEGORY_LABELS[searchParams.categoria] ? searchParams.categoria : undefined
 

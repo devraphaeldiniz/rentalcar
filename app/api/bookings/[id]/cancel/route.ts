@@ -1,12 +1,13 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 
 // O cliente cancela a própria reserva enquanto ela ainda não começou.
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const params = await ctx.params
   const auth = await requireUser()
   if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (!z.string().uuid().safeParse(params.id).success) {

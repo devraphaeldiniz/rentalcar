@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'

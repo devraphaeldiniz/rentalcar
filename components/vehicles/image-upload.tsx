@@ -79,6 +79,7 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
 
   return (
     <div className="space-y-4">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: área de arrastar e soltar; quem usa teclado tem o botão de selecionar arquivos logo abaixo */}
       <div
         onDrop={handleDrop}
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}

@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           >
             {getIcon(toast.type)}
             <span className="flex-1">{toast.message}</span>
-            <button onClick={() => removeToast(toast.id)} className="hover:opacity-70">
+            <button type="button" aria-label="Fechar aviso" onClick={() => removeToast(toast.id)} className="hover:opacity-70">
               <X className="h-4 w-4" />
             </button>
           </div>

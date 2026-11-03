@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
 
 const STATUSES = ['pending', 'confirmed', 'active', 'completed', 'cancelled']
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const params = await ctx.params
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await adminGraphql<{ bookings_by_pk: unknown }>(
@@ -63,7 +64,6 @@ export async function PATCH(
     })
 
     const result = await response.json()
-    console.log('GraphQL Response:', JSON.stringify(result, null, 2))
 
     if (result.errors) {
       console.error('GraphQL Errors:', result.errors)
@@ -73,7 +73,6 @@ export async function PATCH(
       )
     }
 
-    console.log('✅ Booking updated successfully!')
 
     return NextResponse.json({ 
       success: true,

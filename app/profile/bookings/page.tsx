@@ -105,7 +105,6 @@ export default function MyBookingsPage() {
               <li key={b.id} className="overflow-hidden rounded-lg border bg-card">
                 <div className="flex flex-col gap-4 p-4 sm:flex-row">
                   <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-md bg-muted sm:w-44">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     {image && <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />}
                   </div>
                   <div className="flex flex-1 flex-col gap-2">
