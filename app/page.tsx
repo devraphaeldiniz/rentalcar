@@ -4,6 +4,8 @@ import { BadgeCheck, CalendarRange, Car, ReceiptText, Wallet, XCircle, Zap } fro
 import { BookingSearch } from '@/components/client/booking-search'
 import { categoryIcon } from '@/lib/category-icons'
 import { getActiveRules, periodPrice } from '@/lib/quote-server'
+import { getBanners } from '@/lib/banners'
+import { PromoBanner } from '@/components/client/promo-banner'
 import { VehicleCard, type CatalogVehicle } from '@/components/client/vehicle-card'
 import {
   CATEGORY_LABELS,
@@ -59,10 +61,11 @@ export default async function HomePage(props: { searchParams: Promise<SearchPara
   const category = searchParams.categoria && CATEGORY_LABELS[searchParams.categoria] ? searchParams.categoria : undefined
 
   let catalog: Awaited<ReturnType<typeof getCatalog>> | null = null
-  const [catalogResult, rules] = await Promise.all([
+  const [catalogResult, rules, banners] = await Promise.all([
     getCatalog(range).catch((error) => { console.error('[home] catálogo:', error); return null }),
     // Sem a tabela de regras (banco antigo), a vitrine mostra o preço cheio.
     range ? getActiveRules().catch(() => []) : Promise.resolve([]),
+    getBanners('home', 1),
   ])
   catalog = catalogResult
 
@@ -118,6 +121,7 @@ export default async function HomePage(props: { searchParams: Promise<SearchPara
 
       {/* CATÁLOGO */}
       <section id="carros" className="container scroll-mt-20 py-14 md:py-16">
+        {banners[0] && <div className="mb-10"><PromoBanner banner={banners[0]} wide /></div>}
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-electric">Frota AstaCar</p>

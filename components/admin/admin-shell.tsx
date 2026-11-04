@@ -20,6 +20,8 @@ import {
   ExternalLink,
   Filter,
   Tags,
+  Megaphone,
+  CalendarClock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
@@ -27,10 +29,12 @@ import { Logo } from '@/components/brand/logo'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
+  { icon: CalendarClock, label: 'Agenda', href: '/admin/agenda' },
   { icon: Users, label: 'Usuários', href: '/admin/users' },
   { icon: Car, label: 'Veículos', href: '/admin/vehicles' },
   { icon: Calendar, label: 'Reservas', href: '/admin/bookings' },
   { icon: Tags, label: 'Preços e opcionais', href: '/admin/precos' },
+  { icon: Megaphone, label: 'Banners', href: '/admin/banners' },
   { icon: Star, label: 'Avaliações', href: '/admin/reviews' },
   { icon: Mail, label: 'Mensagens', href: '/admin/messages' },
   { icon: Shield, label: 'Segurança', href: '/admin/security' },

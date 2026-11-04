@@ -1,5 +1,6 @@
 'use client'
 
+import type { PriceLine } from '@/lib/pricing'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +32,10 @@ type BookingDetails = {
   start_date: string
   end_date: string
   total_amount: number
+  payment_status?: string
+  price_lines?: PriceLine[] | null
+  coupon_code?: string | null
+  terms_accepted_at?: string | null
   status: string
   created_at: string
   user: {
@@ -290,24 +295,44 @@ export default function BookingDetailsPage() {
             <CardDescription>Informações financeiras</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Diária</span>
-              <span className="font-medium">{formatBRL(Number(booking.vehicle.daily_rate))}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Quantidade de diárias</span>
-              <span className="font-medium">{days}</span>
-            </div>
+            {booking.price_lines && booking.price_lines.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {booking.price_lines.map((l) => (
+                  <li key={l.code} className="flex justify-between gap-3">
+                    <span>
+                      <span className={l.kind === 'discount' ? 'text-success' : ''}>{l.label}</span>
+                      <span className="block text-xs text-muted-foreground">{l.detail}</span>
+                    </span>
+                    <span className={`tabular ${l.amount < 0 ? 'text-success' : ''}`}>{l.amount === 0 ? 'Incluída' : formatBRL(l.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Diária</span>
+                  <span className="font-medium">{formatBRL(Number(booking.vehicle.daily_rate))}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Quantidade de diárias</span>
+                  <span className="font-medium">{days}</span>
+                </div>
+              </>
+            )}
+            {booking.coupon_code && <p className="text-sm text-muted-foreground">Cupom usado: <code className="font-bold text-electric">{booking.coupon_code}</code></p>}
             <Separator />
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold">Total</span>
-              <span className="text-2xl font-bold text-green-600">
+              <span className="tabular text-2xl font-bold text-success">
                 {formatBRL(Number(booking.total_amount))}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <DollarSign className="h-4 w-4" />
-              <span>Pagamento processado</span>
+              <span>{booking.payment_status === 'paid' ? 'Pago' : booking.payment_status === 'refunded' ? 'Reembolsado' : 'Pagamento na retirada'}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {booking.terms_accepted_at ? `Termos aceitos em ${new Date(booking.terms_accepted_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` : 'Reserva anterior ao aceite de termos'}
             </div>
           </CardContent>
         </Card>
