@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { DEMO_LOCKED_MESSAGE, isDemoAccount } from '@/lib/demo'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 import { isValidCpf } from '@/lib/rental'
 
@@ -32,6 +33,7 @@ const input = z.object({
 export async function PATCH(req: NextRequest) {
   const auth = await requireUser()
   if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  if (isDemoAccount(auth.email)) return NextResponse.json({ error: DEMO_LOCKED_MESSAGE }, { status: 403 })
 
   const parsed = input.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {

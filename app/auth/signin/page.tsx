@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AstaMark } from '@/components/brand/logo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Sparkles } from 'lucide-react'
 
 export default function SignInPage() {
   // Quem já está logado não precisa ver esta tela.
@@ -27,6 +27,31 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [demoEnabled, setDemoEnabled] = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/demo').then((r) => r.json()).then((d) => setDemoEnabled(Boolean(d.enabled))).catch(() => {})
+  }, [])
+
+  // Entra na conta de demonstração (as credenciais ficam no servidor).
+  const enterDemo = async () => {
+    setError('')
+    setDemoLoading(true)
+    try {
+      const response = await fetch('/api/auth/demo', { method: 'POST', credentials: 'include' })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(data.error || 'Demonstração indisponível no momento.')
+        setDemoLoading(false)
+        return
+      }
+      window.location.href = safeRedirect(new URLSearchParams(window.location.search).get('redirect'))
+    } catch {
+      setError('Erro ao conectar ao servidor')
+      setDemoLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,6 +140,21 @@ export default function SignInPage() {
               Entrar
             </Button>
           </form>
+
+          {demoEnabled && (
+            <div className="mt-6">
+              <div className="relative flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" />
+              </div>
+              <Button type="button" variant="outline" size="lg" className="mt-4 w-full" onClick={enterDemo} disabled={demoLoading || isLoading}>
+                {demoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-electric" />}
+                Entrar como cliente de demonstração
+              </Button>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                Sem cadastro: faça reservas, use cupons e cancele à vontade.
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 text-center text-sm">
             <span className="text-muted-foreground">Não tem uma conta? </span>

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser, authUrl } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
+import { DEMO_LOCKED_MESSAGE, isDemoAccount } from '@/lib/demo'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 
 const input = z.object({ newPassword: z.string().min(9, 'A senha precisa ter pelo menos 9 caracteres.').max(128) })
@@ -10,6 +11,7 @@ const input = z.object({ newPassword: z.string().min(9, 'A senha precisa ter pel
 export async function POST(req: NextRequest) {
   const auth = await requireUser()
   if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  if (isDemoAccount(auth.email)) return NextResponse.json({ error: DEMO_LOCKED_MESSAGE }, { status: 403 })
 
   const parsed = input.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 })
