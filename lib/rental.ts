@@ -45,9 +45,12 @@ export function rentalDays(start: string, end: string): number {
 }
 
 /** Data local de hoje em AAAA-MM-DD (fuso de quem está usando). */
-export function todayIso(): string {
-  const d = new Date()
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+/**
+ * Data de hoje no fuso de Brasília (AAAA-MM-DD). O servidor da Vercel roda em UTC:
+ * sem fixar o fuso, depois das 21h ele já considerava "amanhã" (agenda, busca e regras de data).
+ */
+export function todayIso(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
 }
 
 export function addDaysIso(iso: string, days: number): string {

@@ -26,7 +26,7 @@ const create = z
     ends_on: optDate,
     sort: z.number().int().min(0).max(99).default(0),
   })
-  .refine((b) => !b.cta_label || b.cta_href, 'Informe o link do botão (ex.: /#carros)')
+  .refine((b) => !b.cta_label || b.cta_href, 'O botão precisa de um link do próprio site, começando com / (ex.: /#carros). Links externos não são aceitos.')
   .refine((b) => !b.starts_on || !b.ends_on || b.ends_on >= b.starts_on, 'O fim precisa ser depois do início')
 
 const unauthorized = () => NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
