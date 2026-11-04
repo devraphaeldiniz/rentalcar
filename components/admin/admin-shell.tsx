@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   ExternalLink,
+  Filter,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
@@ -33,6 +34,7 @@ const menuItems = [
   { icon: Shield, label: 'Segurança', href: '/admin/security' },
   { icon: FileBarChart, label: 'Relatórios', href: '/admin/reports' },
   { icon: TrendingUp, label: 'Estatísticas', href: '/admin/analytics' },
+  { icon: Filter, label: 'Funil e visitas', href: '/admin/funil' },
   { icon: Settings, label: 'Configurações', href: '/admin/settings' },
 ]
 

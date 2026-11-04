@@ -6,6 +6,7 @@ import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
 import { isIsoDate } from '@/lib/rental'
+import { SESSION_COOKIE, VISITOR_COOKIE, deviceFrom, recordEvent, validId } from '@/lib/analytics/server'
 
 const bookingInput = z.object({
   vehicle_id: z.string().uuid(),
@@ -69,6 +70,20 @@ export async function POST(req: NextRequest) {
       userAgent: await getUserAgent(),
       metadata: { vehicle_id, start_date, end_date, total_amount },
     })
+    // Funil do painel: só registra se a pessoa aceitou o monitoramento (o cookie da visita existe).
+    const sid = req.cookies.get(SESSION_COOKIE)?.value
+    if (validId(sid)) {
+      const vid = req.cookies.get(VISITOR_COOKIE)?.value
+      await recordEvent({
+        session_id: sid,
+        visitor_id: validId(vid) ? vid : null,
+        user_id,
+        event: 'booking_created',
+        vehicle_id,
+        meta: { days, total: total_amount },
+        device: deviceFrom(req.headers.get('user-agent')),
+      }).catch((error) => console.error('[track] booking_created', error))
+    }
     return NextResponse.json({ success: true, booking })
   } catch {
     return NextResponse.json({ error: 'Erro ao processar reserva' }, { status: 500 })

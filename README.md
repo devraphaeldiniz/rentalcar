@@ -38,6 +38,7 @@ Plataforma full stack de locação de veículos: o cliente escolhe as datas, vê
 
 **Administrador**
 - Dashboard, frota (cadastro e edição), reservas, usuários (papel e bloqueio), avaliações e mensagens do formulário de contato.
+- **Funil e visitas:** visitas por dia, funil (visitou → abriu um carro → começou a reserva → reservou), carros mais vistos e motivos de desistência informados no checkout, com monitoramento próprio e consentimento de cookies (LGPD).
 - Relatórios com exportação em CSV e PDF.
 - Trilha de auditoria das ações sensíveis.
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CalendarCheck, CalendarPlus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { addDaysIso, MAX_RENTAL_DAYS, pluralDays, rentalDays, todayIso } from '@/lib/rental'
+import { track } from '@/lib/analytics/client'
 
 type Props = {
   initialStart?: string
@@ -32,6 +33,7 @@ export function BookingSearch({ initialStart, initialEnd, category }: Props) {
     if (days < 1) return setError('A devolução precisa ser depois da retirada.')
     if (days > MAX_RENTAL_DAYS) return setError(`O período máximo é de ${MAX_RENTAL_DAYS} diárias.`)
     setError('')
+    track('search', { meta: { days, ...(category ? { category } : {}), leadDays: rentalDays(today, start) } })
     const params = new URLSearchParams({ retirada: start, devolucao: end })
     if (category) params.set('categoria', category)
     router.push(`/?${params.toString()}#carros`)

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Logo } from '@/components/brand/logo'
+import { CookiePreferencesButton } from '@/components/analytics/cookie-preferences-button'
 
 const COLUMNS: { title: string; links: [string, string][] }[] = [
   {
@@ -17,6 +18,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
     title: 'AstaCar',
     links: [
       ['/sobre', 'Sobre o projeto'],
+      ['/privacidade', 'Privacidade e cookies'],
       ['/creditos', 'Créditos das fotos'],
     ],
   },
@@ -53,6 +55,9 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              {col.title === 'Atendimento' && (
+                <li><CookiePreferencesButton variant="link" /></li>
+              )}
             </ul>
           </nav>
         ))}
