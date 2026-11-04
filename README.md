@@ -15,7 +15,7 @@
 
 ### [🚗 Ver o site no ar →](https://rentalcar-eight.vercel.app)
 
-<sub>Projeto de portfólio. As reservas são de demonstração e não geram cobrança.</sub>
+<sub>Projeto de portfólio. As reservas são de demonstração e não geram cobrança.<br />Quer só conhecer? Na tela de login, use <b>Entrar como cliente de demonstração</b>, sem cadastro.</sub>
 
 <br />
 
@@ -440,6 +440,16 @@ Crie uma conta pelo site e promova-a a administrador:
 npm run db:setup -- --admin seu@email.com
 ```
 
+### Conta de demonstração (opcional)
+
+Crie a conta e copie o e-mail e a senha gerada (gravada em `.env.contas-teste.local`) para as variáveis `DEMO_CLIENT_*` do `.env.local` e da Vercel:
+
+```bash
+npm run user:create -- --email demo@astacar.dev --name "Cliente Demonstração"
+```
+
+A conta de demonstração não pode alterar os próprios dados nem a senha, porque é compartilhada.
+
 ### Variáveis de ambiente
 
 | Variável | Onde é usada | Obrigatória |
@@ -449,6 +459,7 @@ npm run db:setup -- --admin seu@email.com
 | `NHOST_ADMIN_SECRET` | **só no servidor** (nunca exposta) | ✅ |
 | `NEXT_PUBLIC_SITE_URL` | endereço público para sitemap e compartilhamento (padrão: domínio da Vercel) | – |
 | `N8N_WEBHOOK_SECRET` | webhook opcional; com menos de 32 caracteres a rota fica desligada | – |
+| `DEMO_CLIENT_EMAIL` · `DEMO_CLIENT_PASSWORD` | **só no servidor**: liga o botão "Entrar como cliente de demonstração" | – |
 
 ### Scripts
 
