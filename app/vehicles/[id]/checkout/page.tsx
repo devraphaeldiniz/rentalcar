@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2, TicketPercent, X } from 'lucide-react'
+import { ArrowLeft, CreditCard, Loader2, Store, TicketPercent, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -24,6 +24,9 @@ import {
   rentalDays,
   todayIso,
 } from '@/lib/rental'
+
+// Pagamento online só aparece com a chave pública do Mercado Pago configurada.
+const ONLINE_PAYMENT = Boolean(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY)
 
 type Vehicle = {
   id: string
@@ -59,6 +62,7 @@ export default function CheckoutPage() {
   const [protection, setProtection] = useState('')
   const [addons, setAddons] = useState<string[]>([])
   const [acceptTerms, setAcceptTerms] = useState(false)
+  const [payMethod, setPayMethod] = useState<'online' | 'on_pickup'>(ONLINE_PAYMENT ? 'online' : 'on_pickup')
   const [couponInput, setCouponInput] = useState(search.get('cupom') ?? '')
   const [coupon, setCoupon] = useState(search.get('cupom') ?? '')
   const [couponError, setCouponError] = useState('')
@@ -166,7 +170,7 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end, protection: protection || undefined, addons, coupon: coupon || undefined, accept_terms: acceptTerms }),
+        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end, protection: protection || undefined, addons, coupon: coupon || undefined, accept_terms: acceptTerms, payment_method: payMethod }),
       })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) {
@@ -176,7 +180,12 @@ export default function CheckoutPage() {
         return
       }
       // Sucesso: a trava continua ligada até a página de confirmação abrir.
-      router.push(`/bookings/${result.booking.id}/confirmation`)
+      // Pagar agora: abre a página do pagamento (Payment Brick); senão, a confirmação.
+      router.push(
+        result.booking.payment_method === 'online'
+          ? `/bookings/${result.booking.id}/pagamento`
+          : `/bookings/${result.booking.id}/confirmation`,
+      )
       return
     } catch {
       setError('Sem conexão com o servidor. Verifique sua internet e tente novamente.')
@@ -263,6 +272,37 @@ export default function CheckoutPage() {
             onToggleAddon={toggleAddon}
           />
 
+          {ONLINE_PAYMENT && (
+            <fieldset className="rounded-2xl border bg-card p-5">
+              <legend className="sr-only">Forma de pagamento</legend>
+              <h2 className="text-lg font-bold">Como você quer pagar?</h2>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {([
+                  { value: 'online', icon: CreditCard, title: 'Pagar agora', text: 'Pix, cartão de crédito ou débito e boleto pelo Mercado Pago. A reserva é confirmada na hora em que o pagamento é aprovado.' },
+                  { value: 'on_pickup', icon: Store, title: 'Pagar na retirada', text: 'Nenhuma cobrança online. Você paga quando pega o carro.' },
+                ] as const).map((o) => (
+                  <label
+                    key={o.value}
+                    className={`flex cursor-pointer gap-3 rounded-xl border p-4 text-sm transition-colors ${payMethod === o.value ? 'border-electric bg-electric/5' : 'hover:bg-muted/40'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="forma-pagamento"
+                      value={o.value}
+                      checked={payMethod === o.value}
+                      onChange={() => setPayMethod(o.value)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--electric))]"
+                    />
+                    <span>
+                      <span className="flex items-center gap-2 font-semibold"><o.icon className="h-4 w-4 text-electric" aria-hidden /> {o.title}</span>
+                      <span className="mt-1 block text-muted-foreground">{o.text}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
           <section className="rounded-2xl border bg-card p-5">
             <h2 className="text-lg font-bold">Antes de confirmar</h2>
             <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
@@ -347,9 +387,13 @@ export default function CheckoutPage() {
 
           <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || !quote || submitting}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {submitting ? 'Confirmando...' : 'Confirmar reserva'}
+            {submitting ? 'Confirmando...' : payMethod === 'online' ? 'Continuar para o pagamento' : 'Confirmar reserva'}
           </Button>
-          <p className="mt-3 text-xs text-muted-foreground">Pagamento na retirada. Você pode acompanhar a reserva em Minhas reservas.</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {payMethod === 'online'
+              ? 'Na próxima tela você paga com Pix, cartão ou boleto pelo Mercado Pago.'
+              : 'Pagamento na retirada. Você pode acompanhar a reserva em Minhas reservas.'}
+          </p>
         </aside>
       </form>
     </main>

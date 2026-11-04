@@ -59,7 +59,7 @@ export function ReserveBox({ vehicleId, dailyRate, initialStart, initialEnd, ava
       ) : (
         <p className="mt-4 rounded-lg bg-muted p-3 text-sm">Este carro está indisponível para reservas no momento.</p>
       )}
-      <p className="mt-3 text-xs text-muted-foreground">Pagamento na retirada. Nenhuma cobrança online.</p>
+      <p className="mt-3 text-xs text-muted-foreground">Pague online (Pix, cartão ou boleto) ou na retirada.</p>
     </div>
   )
 }

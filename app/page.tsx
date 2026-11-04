@@ -19,7 +19,7 @@ import {
 // Diferenciais: só o que o sistema entrega de verdade.
 const FEATURES = [
   { icon: ReceiptText, title: 'Valor total na hora', text: 'Cada carro mostra o preço do período inteiro, não só a diária.' },
-  { icon: Wallet, title: 'Pagamento na retirada', text: 'Nenhuma cobrança online. Você paga quando pega o carro.' },
+  { icon: Wallet, title: 'Pague como preferir', text: 'Pix, cartão ou boleto pelo Mercado Pago, ou na retirada do carro.' },
   { icon: CalendarRange, title: 'Só o que está livre', text: 'A busca avisa na hora quais carros já estão reservados nas suas datas.' },
   { icon: XCircle, title: 'Cancele pelo site', text: 'Mudou de plano? Cancele em Minhas reservas, sem ligar para ninguém.' },
 ]
@@ -91,7 +91,7 @@ export default async function HomePage(props: { searchParams: Promise<SearchPara
         <div className="container relative pt-14 pb-16 md:pt-20 md:pb-24">
           <div className="mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-[hsl(186_100%_50%/0.3)] bg-[hsl(186_100%_50%/0.08)] px-3 py-1 text-xs font-semibold text-[hsl(186_100%_60%)]">
-              <Zap className="h-3.5 w-3.5" aria-hidden /> Reserva 100% online, pagamento na retirada
+              <Zap className="h-3.5 w-3.5" aria-hidden /> Reserva 100% online, Pix, cartão ou na retirada
             </span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] text-white text-balance sm:text-5xl lg:text-6xl">
               A liberdade de ir mais longe com a <span className="text-brand-gradient">AstaCar</span>

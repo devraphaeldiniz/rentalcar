@@ -12,6 +12,8 @@ type Booking = {
   end_date: string
   total_amount: number
   status: string
+  payment_status: string | null
+  payment_method: string | null
   price_lines: PriceLine[] | null
   vehicle: { brand: string; model: string; images: string[] | null; image_url: string | null } | null
 }
@@ -24,7 +26,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
   const data = await adminGraphql<{ bookings: Booking[] }>(
     `query MyBooking($id: uuid!, $userId: uuid!) {
       bookings(where: { id: { _eq: $id }, user_id: { _eq: $userId } }, limit: 1) {
-        id start_date end_date total_amount status price_lines
+        id start_date end_date total_amount status payment_status payment_method price_lines
         vehicle { brand model images image_url }
       }
     }`,
@@ -38,14 +40,25 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
   const days = rentalDays(booking.start_date, booking.end_date)
   const status = BOOKING_STATUS[booking.status]?.label ?? booking.status
   const image = booking.vehicle?.images?.[0] || booking.vehicle?.image_url
+  const paid = booking.payment_status === 'paid'
+  const awaitingOnline = booking.payment_method === 'online' && !paid && ['pending', 'confirmed'].includes(booking.status)
+  const paymentLabel = paid ? 'pago online' : booking.payment_status === 'refunded' ? 'reembolsado' : awaitingOnline ? 'aguardando pagamento online' : 'pagamento na retirada'
 
   return (
     <main className="container max-w-2xl py-12">
       <CheckCircle2 className="h-10 w-10 text-success" aria-hidden />
       <h1 className="mt-4 text-3xl font-bold">Reserva registrada</h1>
       <p className="mt-2 text-muted-foreground">
-        Ela fica como &ldquo;{status.toLowerCase()}&rdquo; até a loja confirmar. Você acompanha tudo em Minhas reservas.
+        {paid
+          ? 'Pagamento aprovado e reserva confirmada. Você acompanha tudo em Minhas reservas.'
+          : <>Ela fica como &ldquo;{status.toLowerCase()}&rdquo; até a loja confirmar. Você acompanha tudo em Minhas reservas.</>}
       </p>
+      {awaitingOnline && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-sm">
+          <span>O pagamento online desta reserva ainda não foi concluído.</span>
+          <Button asChild variant="brand"><Link href={`/bookings/${booking.id}/pagamento`}>Pagar agora</Link></Button>
+        </div>
+      )}
 
       <section className="mt-8 overflow-hidden rounded-2xl border bg-card">
         {image && (
@@ -73,7 +86,7 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
           <div className="sm:col-span-2 flex items-end justify-between border-t pt-4">
             <div>
               <dt className="text-sm text-muted-foreground">Total</dt>
-              <dd className="text-sm text-muted-foreground">{pluralDays(days)}, pagamento na retirada</dd>
+              <dd className="text-sm text-muted-foreground">{pluralDays(days)}, {paymentLabel}</dd>
             </div>
             <dd className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(Number(booking.total_amount))}</span></dd>
           </div>

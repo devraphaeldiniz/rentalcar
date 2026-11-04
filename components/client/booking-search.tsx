@@ -90,7 +90,7 @@ export function BookingSearch({ initialStart, initialEnd, category }: Props) {
             {days >= 1 && days <= MAX_RENTAL_DAYS ? `${pluralDays(days)} · você vê o valor total de cada carro` : 'Escolha um período de até ' + MAX_RENTAL_DAYS + ' diárias'}
           </p>
         )}
-        <p className="text-muted-foreground">Pagamento só na retirada</p>
+        <p className="text-muted-foreground">Pix, cartão ou na retirada</p>
       </div>
     </form>
   )

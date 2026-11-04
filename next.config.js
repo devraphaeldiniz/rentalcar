@@ -4,17 +4,21 @@ const path = require('node:path')
 
 const isProd = process.env.NODE_ENV === 'production'
 const nhost = 'https://*.nhost.run'
+// Mercado Pago (Payment Brick e Status Screen): SDK, API, antifraude e telas do 3DS.
+const mp = 'https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com https://*.mercadolivre.com https://*.mlstatic.com'
 
-// Política de conteúdo: só carrega scripts do próprio site, imagens das
-// fontes usadas pelo catálogo e conexões com o Nhost. 'unsafe-inline' em
+// Política de conteúdo: só carrega scripts do próprio site e do Mercado Pago,
+// imagens das fontes usadas pelo catálogo e conexões com o Nhost e o Mercado Pago. 'unsafe-inline' em
 // script é exigido pelo Next.js sem nonce; 'unsafe-eval' só em desenvolvimento.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
-  "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://upload.wikimedia.org https://i.ibb.co ${nhost}`,
-  "font-src 'self' data:",
-  `connect-src 'self' ${nhost}${isProd ? '' : ' ws:'}`,
+  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"} ${mp}`,
+  `style-src 'self' 'unsafe-inline' ${mp}`,
+  `img-src 'self' data: blob: https://upload.wikimedia.org https://i.ibb.co ${nhost} ${mp}`,
+  `font-src 'self' data: ${mp}`,
+  `connect-src 'self' ${nhost} ${mp}${isProd ? '' : ' ws:'}`,
+  // Campos seguros do cartão e o desafio 3DS do banco emissor rodam em iframes.
+  `frame-src 'self' ${mp} https:`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -33,6 +33,7 @@ type BookingDetails = {
   end_date: string
   total_amount: number
   payment_status?: string
+  payment_method?: string
   price_lines?: PriceLine[] | null
   coupon_code?: string | null
   terms_accepted_at?: string | null
@@ -329,7 +330,7 @@ export default function BookingDetailsPage() {
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <DollarSign className="h-4 w-4" />
-              <span>{booking.payment_status === 'paid' ? 'Pago' : booking.payment_status === 'refunded' ? 'Reembolsado' : 'Pagamento na retirada'}</span>
+              <span>{booking.payment_status === 'paid' ? 'Pago online (Mercado Pago)' : booking.payment_status === 'refunded' ? 'Reembolsado' : booking.payment_method === 'online' ? 'Aguardando pagamento online' : 'Pagamento na retirada'}</span>
             </div>
             <div className="text-xs text-muted-foreground">
               {booking.terms_accepted_at ? `Termos aceitos em ${new Date(booking.terms_accepted_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` : 'Reserva anterior ao aceite de termos'}

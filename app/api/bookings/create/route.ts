@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { isIsoDate } from '@/lib/rental'
 import { QuoteError } from '@/lib/pricing'
 import { claimCoupon, quoteReservation, releaseCoupon } from '@/lib/quote-server'
+import { onlinePaymentEnabled } from '@/lib/payments/mercadopago'
 import { SESSION_COOKIE, VISITOR_COOKIE, deviceFrom, recordEvent, validId } from '@/lib/analytics/server'
 
 const bookingInput = z.object({
@@ -18,6 +19,7 @@ const bookingInput = z.object({
   addons: z.array(z.string().max(40)).max(10).optional(),
   coupon: z.string().max(30).optional(),
   accept_terms: z.literal(true, { message: 'Aceite os termos da locação para continuar.' }),
+  payment_method: z.enum(['online', 'on_pickup']).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -29,6 +31,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { vehicle_id, start_date, end_date, protection, addons, coupon } = parsed.data
+    // Sem Mercado Pago configurado, toda reserva continua com pagamento na retirada.
+    const payment_method = parsed.data.payment_method === 'online' && onlinePaymentEnabled() ? 'online' : 'on_pickup'
     const start = new Date(`${start_date}T00:00:00Z`)
     const end = new Date(`${end_date}T00:00:00Z`)
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000)
@@ -69,9 +73,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Este cupom acabou de atingir o limite de usos.' }, { status: 409 })
     }
     const bookingResponse = await fetch(url, { method: 'POST', headers, body: JSON.stringify({
-      query: `mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount } }`,
+      query: `mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount payment_method } }`,
       variables: { object: {
-        user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending',
+        user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending', payment_method,
         base_amount: quote.base, extras_amount: quote.extras, discount_amount: quote.discount,
         price_lines: quote.lines, terms_accepted_at: new Date().toISOString(), coupon_code: priced.coupon,
         customer_email: auth.email, customer_name: auth.user.displayName ?? null,
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
       resourceId: booking?.id,
       ipAddress: await getClientIP(),
       userAgent: await getUserAgent(),
-      metadata: { vehicle_id, start_date, end_date, total_amount, protection: quote.protection, addons: quote.addons, coupon: priced.coupon },
+      metadata: { vehicle_id, start_date, end_date, total_amount, payment_method, protection: quote.protection, addons: quote.addons, coupon: priced.coupon },
     })
     // Funil do painel: só registra se a pessoa aceitou o monitoramento (o cookie da visita existe).
     const sid = req.cookies.get(SESSION_COOKIE)?.value
