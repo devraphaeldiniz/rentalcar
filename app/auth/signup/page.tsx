@@ -10,8 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AstaMark } from '@/components/brand/logo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { nhost } from '@/lib/nhost/client'
-import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 
 export default function SignUpPage() {
   // Quem já está logado não precisa ver esta tela.
@@ -42,29 +41,27 @@ export default function SignUpPage() {
     }
 
     try {
-      const { session, error: signUpError } = await nhost.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          displayName: formData.full_name,
-          metadata: {
-            phone: formData.phone,
-          },
-          defaultRole: 'user',
-        },
+      // O cadastro passa pelo servidor (como o login): mensagens em português,
+      // limite de tentativas e a sessão já gravada em cookie seguro.
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
       })
-
-      if (signUpError) {
-        setError(signUpError.message)
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setError(result.error || 'Não foi possível criar a conta. Tente novamente.')
         setIsLoading(false)
-      } else {
-        // O site usa sessão em cookie, criada pela rota de login. Depois do cadastro,
-        // a pessoa entra por lá (ou confirma o e-mail antes, se o projeto exigir).
-        if (session) await nhost.auth.signOut().catch(() => {})
-        router.push(`/auth/signin?cadastro=${session ? 'ok' : 'confirmar'}&email=${encodeURIComponent(formData.email)}`)
+        return
       }
-    } catch (err: any) {
-      setError('Erro ao criar conta. Tente novamente.')
+      if (result.signedIn) {
+        window.location.href = safeRedirect(new URLSearchParams(window.location.search).get('redirect'))
+        return
+      }
+      router.push(`/auth/signin?cadastro=confirmar&email=${encodeURIComponent(formData.email)}`)
+    } catch {
+      setError('Sem conexão com o servidor. Verifique sua internet e tente novamente.')
       setIsLoading(false)
     }
   }
@@ -142,21 +139,6 @@ export default function SignUpPage() {
               <p className="text-xs text-muted-foreground mt-1">
                 Mínimo 9 caracteres. Misture letras, números e símbolos.
               </p>
-            </div>
-
-            <div className="space-y-2 p-3 bg-muted rounded-lg text-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span>Criptografia bcrypt</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span>Proteção contra SQL injection</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span>Dados armazenados com segurança</span>
-              </div>
             </div>
 
             <Button type="submit" variant="brand" size="lg" className="w-full" disabled={isLoading}>
