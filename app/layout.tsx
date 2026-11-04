@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { CookieConsent } from "@/components/analytics/cookie-consent"
 import { PageTracker } from "@/components/analytics/page-tracker"
+import { SITE_URL } from "@/lib/site"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,10 +16,22 @@ const inter = Inter({
 
 export const dynamic = "force-dynamic"
 
+const description = "Escolha as datas, compare o valor total do período e reserve seu carro online na AstaCar."
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: "AstaCar | Aluguel de carros", template: "%s | AstaCar" },
-  description: "Escolha as datas, compare o valor total do período e reserve seu carro online na AstaCar.",
+  description,
   applicationName: "AstaCar",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "AstaCar",
+    title: "AstaCar | Aluguel de carros",
+    description,
+  },
+  twitter: { card: "summary_large_image", title: "AstaCar | Aluguel de carros", description },
 }
 
 export const viewport: Viewport = {

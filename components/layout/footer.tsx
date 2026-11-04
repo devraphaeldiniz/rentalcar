@@ -10,7 +10,9 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
     title: 'Aluguel',
     links: [
       ['/', 'Carros disponíveis'],
-      ['/#carros', 'Categorias da frota'],
+      ['/aluguel/suv', 'Aluguel de SUV'],
+      ['/aluguel/economico', 'Carros econômicos'],
+      ['/aluguel/eletrico-e-hibrido', 'Elétricos e híbridos'],
       ['/profile/bookings', 'Minhas reservas'],
     ],
   },
@@ -18,6 +20,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
     title: 'AstaCar',
     links: [
       ['/sobre', 'Sobre o projeto'],
+      ['/termos', 'Termos da locação'],
       ['/privacidade', 'Privacidade e cookies'],
       ['/creditos', 'Créditos das fotos'],
     ],

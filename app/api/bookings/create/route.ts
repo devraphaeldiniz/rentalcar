@@ -6,20 +6,29 @@ import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
 import { isIsoDate } from '@/lib/rental'
+import { QuoteError } from '@/lib/pricing'
+import { claimCoupon, quoteReservation, releaseCoupon } from '@/lib/quote-server'
 import { SESSION_COOKIE, VISITOR_COOKIE, deviceFrom, recordEvent, validId } from '@/lib/analytics/server'
 
 const bookingInput = z.object({
   vehicle_id: z.string().uuid(),
   start_date: z.string().refine(isIsoDate),
   end_date: z.string().refine(isIsoDate),
+  protection: z.string().max(40).optional(),
+  addons: z.array(z.string().max(40)).max(10).optional(),
+  coupon: z.string().max(30).optional(),
+  accept_terms: z.literal(true, { message: 'Aceite os termos da locação para continuar.' }),
 })
 
 export async function POST(req: NextRequest) {
   try {
     const parsed = bookingInput.safeParse(await req.json())
-    if (!parsed.success) return NextResponse.json({ error: 'Dados de reserva inválidos' }, { status: 400 })
+    if (!parsed.success) {
+      const termsIssue = parsed.error.issues.find((i) => i.path[0] === 'accept_terms')
+      return NextResponse.json({ error: termsIssue?.message ?? 'Dados de reserva inválidos' }, { status: 400 })
+    }
 
-    const { vehicle_id, start_date, end_date } = parsed.data
+    const { vehicle_id, start_date, end_date, protection, addons, coupon } = parsed.data
     const start = new Date(`${start_date}T00:00:00Z`)
     const end = new Date(`${end_date}T00:00:00Z`)
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000)
@@ -43,16 +52,34 @@ export async function POST(req: NextRequest) {
     const vehicle = vehicleResult.data?.vehicles_by_pk
     if (!vehicle || vehicle.status !== 'available') return NextResponse.json({ error: 'Veículo indisponível' }, { status: 409 })
 
-    const total_amount = Number(vehicle.daily_rate) * days
+    // O valor é sempre recalculado aqui, com os preços atuais do banco.
+    let priced: Awaited<ReturnType<typeof quoteReservation>>
+    try {
+      priced = await quoteReservation({ dailyRate: Number(vehicle.daily_rate), start: start_date, end: end_date, protection, addons, coupon })
+    } catch (error) {
+      if (error instanceof QuoteError) return NextResponse.json({ error: error.message }, { status: 400 })
+      throw error
+    }
+    if (priced.couponError) return NextResponse.json({ error: priced.couponError }, { status: 400 })
+    const { quote } = priced
+    const total_amount = quote.total
+
+    // O uso do cupom é reservado antes de gravar; se a reserva falhar, ele volta.
+    if (priced.coupon && !(await claimCoupon(priced.coupon))) {
+      return NextResponse.json({ error: 'Este cupom acabou de atingir o limite de usos.' }, { status: 409 })
+    }
     const bookingResponse = await fetch(url, { method: 'POST', headers, body: JSON.stringify({
       query: `mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount } }`,
       variables: { object: {
         user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending',
+        base_amount: quote.base, extras_amount: quote.extras, discount_amount: quote.discount,
+        price_lines: quote.lines, terms_accepted_at: new Date().toISOString(), coupon_code: priced.coupon,
         customer_email: auth.email, customer_name: auth.user.displayName ?? null,
       } },
     }) })
     const result = await bookingResponse.json()
     if (!bookingResponse.ok || result.errors) {
+      if (priced.coupon) await releaseCoupon(priced.coupon)
       // A trava bookings_no_overlap do banco impede duas reservas no mesmo período.
       const message = JSON.stringify(result.errors ?? '')
       if (message.includes('bookings_no_overlap') || message.includes('exclusion')) {
@@ -68,7 +95,7 @@ export async function POST(req: NextRequest) {
       resourceId: booking?.id,
       ipAddress: await getClientIP(),
       userAgent: await getUserAgent(),
-      metadata: { vehicle_id, start_date, end_date, total_amount },
+      metadata: { vehicle_id, start_date, end_date, total_amount, protection: quote.protection, addons: quote.addons, coupon: priced.coupon },
     })
     // Funil do painel: só registra se a pessoa aceitou o monitoramento (o cookie da visita existe).
     const sid = req.cookies.get(SESSION_COOKIE)?.value
@@ -80,7 +107,7 @@ export async function POST(req: NextRequest) {
         user_id,
         event: 'booking_created',
         vehicle_id,
-        meta: { days, total: total_amount },
+        meta: { days, total: total_amount, protection: quote.protection, addons: quote.addons.length },
         device: deviceFrom(req.headers.get('user-agent')),
       }).catch((error) => console.error('[track] booking_created', error))
     }

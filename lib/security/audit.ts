@@ -15,6 +15,7 @@ type AuditAction =
   | 'vehicle.updated'
   | 'vehicle.deleted'
   | 'admin.access'
+  | 'pricing.updated'
 
 type AuditLogInput = {
   userId?: string

@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, TicketPercent, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { dateInputClass } from '@/components/client/reserve-box'
 import { CheckoutFeedback } from '@/components/client/checkout-feedback'
+import { CheckoutExtras } from '@/components/client/checkout-extras'
+import { computeQuote, defaultProtection, type Extra, type Quote } from '@/lib/pricing'
+import { POLICIES, REQUIREMENTS } from '@/lib/policies'
 import { track } from '@/lib/analytics/client'
 import {
   addDaysIso,
@@ -52,6 +55,25 @@ export default function CheckoutPage() {
   const [error, setError] = useState('')
   // Trava síncrona: o estado do React só atualiza no próximo render, e um clique duplo enviaria dois pedidos.
   const sending = useRef(false)
+  const [extras, setExtras] = useState<Extra[]>([])
+  const [protection, setProtection] = useState('')
+  const [addons, setAddons] = useState<string[]>([])
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [couponInput, setCouponInput] = useState(search.get('cupom') ?? '')
+  const [coupon, setCoupon] = useState(search.get('cupom') ?? '')
+  const [couponError, setCouponError] = useState('')
+  const [serverQuote, setServerQuote] = useState<Quote | null>(null)
+  const [quoting, setQuoting] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/extras')
+      .then((r) => (r.ok ? r.json() : { extras: [] }))
+      .then((d: { extras: Extra[] }) => {
+        setExtras(d.extras ?? [])
+        setProtection(defaultProtection(d.extras ?? [])?.code ?? '')
+      })
+      .catch(() => {})
+  }, [])
 
   // Sem login, volta para cá depois de entrar, com as mesmas datas.
   useEffect(() => {
@@ -74,17 +96,67 @@ export default function CheckoutPage() {
   const validPeriod = start >= today && days >= 1 && days <= MAX_RENTAL_DAYS
   const rate = Number(vehicle?.daily_rate ?? 0)
 
+  // Valor oficial vem do servidor (temporada, desconto por duração e cupom);
+  // o cálculo local só cobre o instante entre um clique e a resposta.
+  let localQuote: Quote | null = null
+  if (vehicle && validPeriod) {
+    try {
+      localQuote = computeQuote({ dailyRate: rate, days, extras, protectionCode: protection || null, addonCodes: addons })
+    } catch {
+      localQuote = null
+    }
+  }
+  const quote = serverQuote ?? localQuote
+
+  const addonsKey = addons.join(',')
+  useEffect(() => {
+    if (!vehicle || !validPeriod) { setServerQuote(null); return }
+    let cancelled = false
+    setQuoting(true)
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch('/api/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vehicle_id: vehicle.id, start_date: start, end_date: end,
+            protection: protection || undefined, addons: addonsKey ? addonsKey.split(',') : [], coupon: coupon || undefined,
+          }),
+        })
+        const d = await r.json().catch(() => ({}))
+        if (cancelled) return
+        if (r.ok) {
+          setServerQuote(d.quote)
+          if (d.couponError) { setCouponError(d.couponError); setCoupon('') } else if (coupon) setCouponError('')
+        } else setServerQuote(null)
+      } catch {
+        if (!cancelled) setServerQuote(null)
+      } finally {
+        if (!cancelled) setQuoting(false)
+      }
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [vehicle, validPeriod, start, end, protection, addonsKey, coupon])
+
+  const applyCoupon = () => {
+    const code = couponInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+    setCouponError('')
+    setCoupon(code)
+  }
+  const toggleAddon = (code: string) => setAddons((list) => (list.includes(code) ? list.filter((c) => c !== code) : [...list, code]))
+
   // Funil: marca uma vez que a pessoa chegou à revisão da reserva.
   const startTracked = useRef(false)
   useEffect(() => {
     if (startTracked.current || !vehicle || !isAuthenticated) return
     startTracked.current = true
-    track('start_checkout', { vehicleId: vehicle.id, meta: { days, total: Number(vehicle.daily_rate) * days, category: vehicle.category } })
+    track('start_checkout', { vehicleId: vehicle.id, meta: { days, base: Number(vehicle.daily_rate) * days, category: vehicle.category } })
   }, [vehicle, isAuthenticated, days])
 
   const confirm = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validPeriod) return setError('Escolha um período válido: a devolução precisa ser depois da retirada.')
+    if (!acceptTerms) return setError('Leia e aceite os termos da locação para confirmar.')
     if (sending.current) return
     sending.current = true
     setSubmitting(true)
@@ -94,7 +166,7 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end }),
+        body: JSON.stringify({ vehicle_id: id, start_date: start, end_date: end, protection: protection || undefined, addons, coupon: coupon || undefined, accept_terms: acceptTerms }),
       })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) {
@@ -182,21 +254,89 @@ export default function CheckoutPage() {
             </p>
           </section>
 
-          <CheckoutFeedback vehicleId={vehicle.id} days={validPeriod ? days : 0} total={validPeriod ? rate * days : 0} />
+          <CheckoutExtras
+            extras={extras}
+            days={validPeriod ? days : 1}
+            protection={protection}
+            addons={addons}
+            onProtection={setProtection}
+            onToggleAddon={toggleAddon}
+          />
+
+          <section className="rounded-2xl border bg-card p-5">
+            <h2 className="text-lg font-bold">Antes de confirmar</h2>
+            <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              {[...REQUIREMENTS, ...POLICIES.slice(0, 3)].map((r) => (
+                <li key={r.title}>
+                  <p className="font-semibold">{r.title}</p>
+                  <p className="text-muted-foreground">{r.text}</p>
+                </li>
+              ))}
+            </ul>
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/40 p-4 text-sm">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[hsl(var(--electric))]"
+              />
+              <span>
+                Li e aceito os{' '}
+                <Link href="/termos" target="_blank" className="font-semibold text-electric hover:underline">termos da locação</Link>{' '}
+                e os requisitos acima.
+              </span>
+            </label>
+          </section>
+
+          <CheckoutFeedback vehicleId={vehicle.id} days={validPeriod ? days : 0} total={quote?.total ?? 0} />
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start rounded-2xl border bg-card p-6 shadow-xl shadow-black/10">
           <h2 className="text-lg font-bold">Resumo</h2>
-          {validPeriod ? (
+          {validPeriod && quote ? (
             <>
-              <p className="mt-1 text-sm text-muted-foreground">{formatShortDate(start)} a {formatShortDate(end)}</p>
-              <div className="mt-4 flex justify-between text-sm">
-                <span>{pluralDays(days)} x {formatBRL(rate)}</span>
-                <span>{formatBRL(rate * days)}</span>
+              <p className="mt-1 text-sm text-muted-foreground">{formatShortDate(start)} a {formatShortDate(end)} · {pluralDays(days)}</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                {quote.lines.map((l) => (
+                  <li key={l.code} className="flex justify-between gap-3">
+                    <span>
+                      <span className={l.kind === 'discount' ? 'text-success' : ''}>{l.label}</span>
+                      <span className="block text-xs text-muted-foreground">{l.detail}</span>
+                    </span>
+                    <span className={`tabular shrink-0 ${l.kind === 'discount' || l.amount < 0 ? 'text-success' : ''}`}>
+                      {l.amount === 0 ? 'Incluída' : formatBRL(l.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 border-t pt-4">
+                {coupon && !couponError ? (
+                  <p className="flex items-center justify-between rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+                    <span className="flex items-center gap-2"><TicketPercent className="h-4 w-4" aria-hidden /> Cupom {coupon} aplicado</span>
+                    <button type="button" onClick={() => { setCoupon(''); setCouponInput('') }} aria-label="Remover cupom" className="rounded p-0.5 hover:bg-success/20">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </p>
+                ) : (
+                  <div className="flex gap-2">
+                    <label htmlFor="cupom" className="sr-only">Cupom de desconto</label>
+                    <input
+                      id="cupom"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon() } }}
+                      placeholder="Cupom de desconto"
+                      maxLength={20}
+                      className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm uppercase placeholder:normal-case focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <Button type="button" variant="outline" onClick={applyCoupon} disabled={!couponInput.trim()}>Aplicar</Button>
+                  </div>
+                )}
+                {couponError && <p role="alert" className="mt-2 text-sm text-destructive">{couponError}</p>}
               </div>
               <div className="mt-4 flex items-end justify-between border-t pt-4">
-                <span className="font-medium">Total</span>
-                <span className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(rate * days)}</span></span>
+                <span className="flex items-center gap-2 font-medium">Total {quoting && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Atualizando" />}</span>
+                <span className="text-2xl font-bold"><span className="tabular font-black text-electric">{formatBRL(quote.total)}</span></span>
               </div>
             </>
           ) : (
@@ -205,7 +345,7 @@ export default function CheckoutPage() {
 
           {error && <p role="alert" className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || submitting}>
+          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || !quote || submitting}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {submitting ? 'Confirmando...' : 'Confirmar reserva'}
           </Button>

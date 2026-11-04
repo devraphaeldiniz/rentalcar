@@ -93,7 +93,7 @@ async function migrate() {
 }
 
 // ---------- 2. metadata do Hasura ----------
-const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages', 'analytics_events']
+const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages', 'analytics_events', 'rental_extras', 'pricing_rules', 'coupons', 'banners']
 const AUTH_USERS = { schema: 'auth', name: 'users' }
 const t = (name) => ({ schema: 'public', name })
 
@@ -120,12 +120,16 @@ const VEHICLE_PUBLIC_COLUMNS = [
   'features', 'images', 'image_url', 'image_credits', 'average_rating', 'total_reviews', 'created_at',
 ]
 
+const EXTRA_PUBLIC_COLUMNS = ['id', 'code', 'kind', 'name', 'description', 'price', 'pricing', 'max_total', 'is_default', 'sort']
+
 // O admin do painel usa o admin secret no servidor; aqui só entram os papéis
 // que o navegador pode usar diretamente. Reservas, avaliações, logs e tentativas
 // de login são escritos só pelas rotas de API, nunca direto pelo cliente.
 const SELECT_PERMS = [
   ['vehicles', 'anonymous', { columns: VEHICLE_PUBLIC_COLUMNS, filter: { status: { _neq: 'maintenance' } } }],
   ['vehicles', 'user', { columns: VEHICLE_PUBLIC_COLUMNS, filter: { status: { _neq: 'maintenance' } } }],
+  ['rental_extras', 'anonymous', { columns: EXTRA_PUBLIC_COLUMNS, filter: { active: { _eq: true } } }],
+  ['rental_extras', 'user', { columns: EXTRA_PUBLIC_COLUMNS, filter: { active: { _eq: true } } }],
   ['profiles', 'user', {
     columns: ['id', 'email', 'full_name', 'phone', 'cpf', 'role', 'email_verified', 'created_at'],
     filter: { id: { _eq: 'X-Hasura-User-Id' } },
