@@ -54,14 +54,17 @@ export default async function AgendaPage() {
         ) : (
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-label="Devolução atrasada" />
         )}
+        {/* Tudo em coluna: os cards dos dias são estreitos e o texto não pode espremer. */}
         <span className="min-w-0 flex-1 text-sm">
-          <span className="block font-semibold">{r.vehicle ? `${r.vehicle.brand} ${r.vehicle.model}` : 'Carro removido'}{r.vehicle?.plate ? ` · ${r.vehicle.plate}` : ''}</span>
-          <span className="block truncate text-muted-foreground">{r.customer_name || r.customer_email || 'Cliente'}</span>
+          <span className="block font-semibold">{r.vehicle ? `${r.vehicle.brand} ${r.vehicle.model}` : 'Carro removido'}</span>
+          <span className="block truncate text-muted-foreground">
+            {r.vehicle?.plate ? `${r.vehicle.plate} · ` : ''}{r.customer_name || r.customer_email || 'Cliente'}
+          </span>
+          <span className="mt-1 flex flex-wrap items-center justify-between gap-x-3 text-xs text-muted-foreground">
+            <span>{BOOKING_STATUS[r.status]?.label ?? r.status}</span>
+            <span className="tabular">{formatBRL(Number(r.total_amount))}</span>
+          </span>
           {kind === 'overdue' && <span className="block text-xs text-destructive">Devolução prevista para {formatLongDate(r.end_date)}</span>}
-        </span>
-        <span className="shrink-0 text-right text-xs text-muted-foreground">
-          <span className="block">{BOOKING_STATUS[r.status]?.label ?? r.status}</span>
-          <span className="tabular block">{formatBRL(Number(r.total_amount))}</span>
         </span>
       </Link>
     </li>
