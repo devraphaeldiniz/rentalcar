@@ -23,11 +23,13 @@ type Props = {
   vehicle: CatalogVehicle
   range: DateRange | null
   unavailable?: boolean
+  /** Total do período já com temporada e desconto por duração (calculado no servidor). */
+  price?: { total: number; full: number; discountLabel: string | null }
   /** Categoria filtrada na home, para o "voltar" da página do carro manter o filtro. */
   category?: string
 }
 
-export function VehicleCard({ vehicle, range, unavailable = false, category }: Props) {
+export function VehicleCard({ vehicle, range, price, unavailable = false, category }: Props) {
   const image = vehicle.images?.[0] || vehicle.image_url
   const name = `${vehicle.brand} ${vehicle.model}`
   const rate = Number(vehicle.daily_rate)
@@ -89,8 +91,13 @@ export function VehicleCard({ vehicle, range, unavailable = false, category }: P
         {range ? (
           <div>
             <p className="text-xs text-muted-foreground">{pluralDays(range.days)} · {formatBRL(rate)}/dia</p>
-            <p className="tabular text-2xl font-black">{formatBRL(rate * range.days)}</p>
-            <p className="text-xs text-muted-foreground">total do período</p>
+            {price && price.total < price.full && (
+              <p className="tabular text-xs text-muted-foreground line-through">{formatBRL(price.full)}</p>
+            )}
+            <p className="tabular text-2xl font-black">{formatBRL(price?.total ?? rate * range.days)}</p>
+            <p className={`text-xs ${price?.discountLabel ? 'font-medium text-success' : 'text-muted-foreground'}`}>
+              {price?.discountLabel ?? 'total do período'}
+            </p>
           </div>
         ) : (
           <div>

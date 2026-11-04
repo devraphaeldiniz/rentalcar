@@ -22,8 +22,11 @@ export type Discount = {
   amount?: number
 }
 
+/** Ajuste em reais sobre as diárias (ex.: alta temporada), positivo ou negativo. */
+export type Adjustment = { code: string; label: string; detail: string; amount: number }
+
 export type PriceLine = {
-  kind: 'base' | 'protection' | 'addon' | 'discount'
+  kind: 'base' | 'season' | 'protection' | 'addon' | 'discount'
   code: string
   label: string
   detail: string
@@ -65,12 +68,13 @@ type QuoteInput = {
   extras: Extra[]
   protectionCode?: string | null
   addonCodes?: string[]
+  adjustments?: Adjustment[]
   discounts?: Discount[]
 }
 
 export class QuoteError extends Error {}
 
-export function computeQuote({ dailyRate, days, extras, protectionCode, addonCodes = [], discounts = [] }: QuoteInput): Quote {
+export function computeQuote({ dailyRate, days, extras, protectionCode, addonCodes = [], adjustments = [], discounts = [] }: QuoteInput): Quote {
   if (!Number.isFinite(dailyRate) || dailyRate < 0) throw new QuoteError('Diária inválida.')
   if (!Number.isInteger(days) || days < 1) throw new QuoteError('Período inválido.')
 
@@ -91,8 +95,17 @@ export function computeQuote({ dailyRate, days, extras, protectionCode, addonCod
     { kind: 'base', code: 'diarias', label: days === 1 ? '1 diária' : `${days} diárias`, detail: `${days} × ${brl(dailyRate)}`, amount: base },
   ]
 
+  // Temporadas ajustam as diárias antes dos descontos.
+  let rental = base
+  for (const a of adjustments) {
+    const amount = cents(Math.max(a.amount, -rental))
+    if (amount === 0) continue
+    rental = cents(rental + amount)
+    lines.push({ kind: 'season', code: a.code, label: a.label, detail: a.detail, amount })
+  }
+
   // Descontos incidem só sobre as diárias, um depois do outro, e nunca deixam o valor negativo.
-  let discounted = base
+  let discounted = rental
   for (const d of discounts) {
     const value = d.percent != null ? (discounted * d.percent) / 100 : (d.amount ?? 0)
     const amount = cents(Math.min(Math.max(value, 0), discounted))
@@ -112,9 +125,9 @@ export function computeQuote({ dailyRate, days, extras, protectionCode, addonCod
   return {
     days,
     dailyRate,
-    base,
+    base: rental,
     extras: extrasTotal,
-    discount: cents(base - discounted),
+    discount: cents(rental - discounted),
     total: cents(discounted + extrasTotal),
     protection: protection?.code ?? '',
     addons: addons.map((a) => a.code),
