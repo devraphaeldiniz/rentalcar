@@ -36,6 +36,10 @@ export default function MyBookingsPage() {
   const busyRef = useRef(false)
   const [message, setMessage] = useState('')
   const [reviewing, setReviewing] = useState<string | null>(null)
+  // Confirmação dentro do card: o window.confirm é bloqueado por alguns navegadores
+  // e apps (o clique "não fazia nada"), então a pergunta é feita na própria página.
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [cardError, setCardError] = useState<{ id: string; text: string } | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -57,17 +61,23 @@ export default function MyBookingsPage() {
   }, [authLoading, isAuthenticated, load, router])
 
   const cancel = async (b: Booking) => {
-    const name = b.vehicle ? `${b.vehicle.brand} ${b.vehicle.model}` : 'o carro'
     if (busyRef.current) return
-    if (!window.confirm(`Cancelar a reserva de ${name} (${formatLongDate(b.start_date)})?`)) return
     busyRef.current = true
     setBusy(b.id)
     setMessage('')
+    setCardError(null)
     try {
-      const response = await fetch(`/api/bookings/${b.id}/cancel`, { method: 'POST' })
+      const response = await fetch(`/api/bookings/${b.id}/cancel`, { method: 'POST', credentials: 'include' })
       const result = await response.json().catch(() => ({}))
-      setMessage(response.ok ? 'Reserva cancelada.' : result.error || 'Não foi possível cancelar.')
-      if (response.ok) await load()
+      if (response.ok) {
+        setConfirming(null)
+        setMessage('Reserva cancelada.')
+        await load()
+      } else {
+        setCardError({ id: b.id, text: result.error || 'Não foi possível cancelar. Tente de novo.' })
+      }
+    } catch {
+      setCardError({ id: b.id, text: 'Sem conexão com o servidor. Verifique sua internet e tente de novo.' })
     } finally {
       busyRef.current = false
       setBusy(null)
@@ -133,16 +143,33 @@ export default function MyBookingsPage() {
                             Avaliar o carro
                           </Button>
                         )}
-                        {canCancel && (
-                          <Button variant="outline" size="sm" disabled={busy === b.id} onClick={() => cancel(b)}
+                        {canCancel && confirming !== b.id && (
+                          <Button variant="outline" size="sm" onClick={() => { setConfirming(b.id); setCardError(null) }}
                             className="text-destructive hover:text-destructive">
-                            {busy === b.id ? 'Cancelando...' : 'Cancelar reserva'}
+                            Cancelar reserva
                           </Button>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
+                {confirming === b.id && (
+                  <div role="alertdialog" aria-labelledby={`cancelar-${b.id}`} className="flex flex-col gap-3 border-t bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p id={`cancelar-${b.id}`} className="text-sm">
+                      Cancelar a reserva de <strong>{b.vehicle ? `${b.vehicle.brand} ${b.vehicle.model}` : 'o carro'}</strong> para {formatLongDate(b.start_date)}? Isso não pode ser desfeito.
+                    </p>
+                    <div className="flex shrink-0 gap-2">
+                      <Button variant="ghost" size="sm" disabled={busy === b.id} onClick={() => setConfirming(null)}>Manter reserva</Button>
+                      <Button variant="destructive" size="sm" disabled={busy === b.id} onClick={() => cancel(b)}>
+                        {busy === b.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {busy === b.id ? 'Cancelando...' : 'Sim, cancelar'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {cardError?.id === b.id && (
+                  <p role="alert" className="border-t bg-destructive/10 p-3 text-sm text-destructive">{cardError.text}</p>
+                )}
                 {reviewing === b.id && b.vehicle && (
                   <div className="border-t p-4">
                     <ReviewForm bookingId={b.id} vehicleId={b.vehicle.id} onSuccess={() => { setReviewing(null); setMessage('Avaliação enviada. Ela aparece no site depois da moderação.'); load() }} />
