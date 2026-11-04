@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/lib/contexts/theme-context"
+import { ToastProvider } from "@/lib/contexts/toast-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { CookieConsent } from "@/components/analytics/cookie-consent"
@@ -54,11 +55,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen flex flex-col font-sans">
         <ThemeProvider>
+          {/* Avisos rápidos (avaliação enviada, upload, painel). Sem o provider, essas telas quebravam. */}
+          <ToastProvider>
           <Header />
           <div className="flex-1">{children}</div>
           <Footer />
           <CookieConsent />
           <PageTracker />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

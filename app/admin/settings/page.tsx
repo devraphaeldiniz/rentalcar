@@ -9,10 +9,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Settings, Bell, Mail, Shield, Database } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
+import { useToast } from '@/lib/contexts/toast-context'
 
 export default function SettingsPage() {
-  const { toast } = useToast()
+  const { showToast } = useToast()
   const [settings, setSettings] = useState({
     siteName: 'AstaCar',
     siteDescription: 'Sistema de aluguel de veículos',
@@ -36,17 +36,10 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
-        toast({
-          title: 'Configurações salvas',
-          description: 'As configurações foram atualizadas com sucesso.',
-        })
+        showToast('Configurações salvas.', 'success')
       }
     } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar as configurações.',
-        variant: 'destructive',
-      })
+      showToast('Não foi possível salvar as configurações.', 'error')
     }
   }
 

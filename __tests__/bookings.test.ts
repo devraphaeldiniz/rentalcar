@@ -24,3 +24,11 @@ describe('Booking Validation', () => {
     expect(() => bookingSchema.parse(booking)).toThrow()
   })
 })
+describe('data de hoje', () => {
+  it('usa o fuso de Brasília mesmo com o servidor em UTC', async () => {
+    const { todayIso } = await import('@/lib/rental')
+    // 3/11 às 21h30 em Brasília = 4/11 00h30 em UTC
+    expect(todayIso(new Date('2026-11-04T00:30:00Z'))).toBe('2026-11-03')
+    expect(todayIso(new Date('2026-11-04T03:00:00Z'))).toBe('2026-11-04')
+  })
+})
