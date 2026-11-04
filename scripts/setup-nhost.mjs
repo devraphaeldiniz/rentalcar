@@ -93,12 +93,13 @@ async function migrate() {
 }
 
 // ---------- 2. metadata do Hasura ----------
-const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages', 'analytics_events', 'rental_extras', 'pricing_rules', 'coupons', 'banners']
+const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages', 'analytics_events', 'rental_extras', 'pricing_rules', 'coupons', 'banners', 'payments']
 const AUTH_USERS = { schema: 'auth', name: 'users' }
 const t = (name) => ({ schema: 'public', name })
 
 const OBJECT_RELS = [
   ['bookings', 'vehicle', { foreign_key_constraint_on: 'vehicle_id' }],
+  ['payments', 'booking', { foreign_key_constraint_on: 'booking_id' }],
   ['bookings', 'profile', { foreign_key_constraint_on: 'user_id' }],
   ['bookings', 'user', { manual_configuration: { remote_table: AUTH_USERS, column_mapping: { user_id: 'id' } } }],
   ['reviews', 'vehicle', { foreign_key_constraint_on: 'vehicle_id' }],
@@ -112,6 +113,7 @@ const ARRAY_RELS = [
   ['vehicles', 'bookings', { foreign_key_constraint_on: { table: t('bookings'), column: 'vehicle_id' } }],
   ['vehicles', 'reviews', { foreign_key_constraint_on: { table: t('reviews'), column: 'vehicle_id' } }],
   ['profiles', 'bookings', { foreign_key_constraint_on: { table: t('bookings'), column: 'user_id' } }],
+  ['bookings', 'payments', { foreign_key_constraint_on: { table: t('payments'), column: 'booking_id' } }],
 ]
 
 const VEHICLE_PUBLIC_COLUMNS = [
@@ -135,7 +137,7 @@ const SELECT_PERMS = [
     filter: { id: { _eq: 'X-Hasura-User-Id' } },
   }],
   ['bookings', 'user', {
-    columns: ['id', 'vehicle_id', 'start_date', 'end_date', 'total_amount', 'status', 'payment_status', 'notes', 'created_at'],
+    columns: ['id', 'vehicle_id', 'start_date', 'end_date', 'total_amount', 'status', 'payment_status', 'payment_method', 'notes', 'created_at'],
     filter: { user_id: { _eq: 'X-Hasura-User-Id' } },
   }],
 ]

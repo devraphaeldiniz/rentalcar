@@ -42,7 +42,7 @@ export default function OgImage() {
           <div style={{ marginTop: 24, fontSize: 32, color: '#94a3b8' }}>Veja o valor total do aluguel antes de reservar.</div>
         </div>
         <div style={{ display: 'flex', gap: 16, fontSize: 26, color: '#cbd5e1' }}>
-          <span>32 carros</span><span>·</span><span>8 categorias</span><span>·</span><span>Pagamento na retirada</span>
+          <span>32 carros</span><span>·</span><span>8 categorias</span><span>·</span><span>Pix, cartão ou na retirada</span>
         </div>
       </div>
     ),
