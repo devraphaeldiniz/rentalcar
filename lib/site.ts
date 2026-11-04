@@ -22,6 +22,18 @@ export const CATEGORY_SLUGS: Record<string, string> = {
 
 export const CATEGORY_BY_SLUG = Object.fromEntries(Object.entries(CATEGORY_SLUGS).map(([k, v]) => [v, k])) as Record<string, string>
 
+/** Título natural de cada página de categoria ("Aluguel de SUV", não "aluguel de carro suv"). */
+export const CATEGORY_TITLES: Record<string, string> = {
+  economy: 'Aluguel de carro econômico',
+  standard: 'Aluguel de carro intermediário',
+  suv: 'Aluguel de SUV',
+  minivan: 'Aluguel de carro de 7 lugares',
+  pickup: 'Aluguel de picape',
+  electric: 'Aluguel de carro elétrico e híbrido',
+  luxury: 'Aluguel de carro executivo',
+  sports: 'Aluguel de carro esportivo',
+}
+
 export const CATEGORY_INTRO: Record<string, string> = {
   economy: 'Carros compactos e econômicos para rodar na cidade gastando pouco combustível.',
   standard: 'Sedãs e hatches médios com mais espaço e conforto para viagens.',
