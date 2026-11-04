@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { type NextRequest, NextResponse } from 'next/server'
+import { after, type NextRequest, NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
@@ -9,6 +9,7 @@ import { isIsoDate } from '@/lib/rental'
 import { QuoteError } from '@/lib/pricing'
 import { claimCoupon, quoteReservation, releaseCoupon } from '@/lib/quote-server'
 import { onlinePaymentEnabled } from '@/lib/payments/mercadopago'
+import { sendBookingConfirmation } from '@/lib/email/booking-emails'
 import { SESSION_COOKIE, VISITOR_COOKIE, deviceFrom, recordEvent, validId } from '@/lib/analytics/server'
 
 const bookingInput = z.object({
@@ -115,6 +116,8 @@ export async function POST(req: NextRequest) {
         device: deviceFrom(req.headers.get('user-agent')),
       }).catch((error) => console.error('[track] booking_created', error))
     }
+    // Pagamento na retirada: confirma por e-mail já. Online: o e-mail sai quando o pagamento for aprovado.
+    if (booking?.id && payment_method === 'on_pickup') after(() => sendBookingConfirmation(booking.id))
     return NextResponse.json({ success: true, booking })
   } catch {
     return NextResponse.json({ error: 'Erro ao processar reserva' }, { status: 500 })

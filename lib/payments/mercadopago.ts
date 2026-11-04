@@ -6,6 +6,7 @@ import type { PaymentCreateRequest } from 'mercadopago/dist/clients/payment/crea
 import type { PaymentResponse } from 'mercadopago/dist/clients/payment/commonTypes'
 import { adminGraphql } from '@/lib/auth/authorization'
 import { SITE_URL } from '@/lib/site'
+import { sendBookingConfirmation } from '@/lib/email/booking-emails'
 
 export class PaymentConfigError extends Error {}
 
@@ -217,6 +218,8 @@ export async function syncPayment(payment: PaymentResponse) {
       'mutation U($id: uuid!, $set: bookings_set_input!) { update_bookings_by_pk(pk_columns: { id: $id }, _set: $set) { id } }',
       { id: booking.id, set },
     )
+    // Pagamento aprovado agora: manda o e-mail de confirmação (a trava no banco evita duplicar).
+    if (set.payment_status === 'paid') await sendBookingConfirmation(booking.id)
   }
   return { synced: true as const, status: payment.status }
 }
