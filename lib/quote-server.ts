@@ -41,7 +41,14 @@ export function periodPrice(dailyRate: number, start: string, end: string, rules
     adjustments: seasonAdjustments(rules, dailyRate, start, end),
     discounts: [durationDiscount(rules, days)].filter(Boolean) as NonNullable<ReturnType<typeof durationDiscount>>[],
   })
-  return { total: q.total, full: Math.round(dailyRate * days * 100) / 100, discountLabel: q.lines.find((l) => l.kind === 'discount')?.label ?? null }
+  const season = q.lines.filter((l) => l.kind === 'season')
+  return {
+    total: q.total,
+    full: Math.round(dailyRate * days * 100) / 100,
+    discountLabel: q.lines.find((l) => l.kind === 'discount')?.label ?? null,
+    // Avisa quando a temporada mexeu no preço, para o total não parecer errado.
+    seasonLabel: season.length ? season.map((l) => `${l.label} (${l.detail})`).join(' · ') : null,
+  }
 }
 
 type QuoteRequest = {

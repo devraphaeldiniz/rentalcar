@@ -6,7 +6,7 @@ import { PageHero } from '@/components/layout/page-hero'
 import { BookingSearch } from '@/components/client/booking-search'
 import { VehicleCard, type CatalogVehicle } from '@/components/client/vehicle-card'
 import { CATEGORY_LABELS, formatBRL } from '@/lib/rental'
-import { CATEGORY_BY_SLUG, CATEGORY_INTRO, CATEGORY_SLUGS } from '@/lib/site'
+import { CATEGORY_BY_SLUG, CATEGORY_INTRO, CATEGORY_SLUGS, CATEGORY_TITLES } from '@/lib/site'
 
 type Props = { params: Promise<{ categoria: string }> }
 
@@ -26,9 +26,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const { categoria } = await props.params
   const category = CATEGORY_BY_SLUG[categoria]
   if (!category) return { title: 'Categoria não encontrada' }
-  const label = CATEGORY_LABELS[category]
   return {
-    title: `Aluguel de carro ${label.toLowerCase()}`,
+    title: CATEGORY_TITLES[category],
     description: `${CATEGORY_INTRO[category]} Compare modelos, veja o valor total do período e reserve online na AstaCar.`,
     alternates: { canonical: `/aluguel/${categoria}` },
   }
@@ -47,7 +46,7 @@ export default async function CategoryPage(props: Props) {
     <main>
       <PageHero
         eyebrow="Frota AstaCar"
-        title={`Aluguel de carro ${label.toLowerCase()}`}
+        title={CATEGORY_TITLES[category]}
         subtitle={`${CATEGORY_INTRO[category]}${cheapest ? ` Diárias a partir de ${formatBRL(cheapest)}.` : ''}`}
       />
 

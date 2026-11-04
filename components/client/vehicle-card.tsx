@@ -24,7 +24,7 @@ type Props = {
   range: DateRange | null
   unavailable?: boolean
   /** Total do período já com temporada e desconto por duração (calculado no servidor). */
-  price?: { total: number; full: number; discountLabel: string | null }
+  price?: { total: number; full: number; discountLabel: string | null; seasonLabel?: string | null }
   /** Categoria filtrada na home, para o "voltar" da página do carro manter o filtro. */
   category?: string
 }
@@ -95,6 +95,7 @@ export function VehicleCard({ vehicle, range, price, unavailable = false, catego
               <p className="tabular text-xs text-muted-foreground line-through">{formatBRL(price.full)}</p>
             )}
             <p className="tabular text-2xl font-black">{formatBRL(price?.total ?? rate * range.days)}</p>
+            {price?.seasonLabel && <p className="text-xs font-medium text-warning">{price.seasonLabel}</p>}
             <p className={`text-xs ${price?.discountLabel ? 'font-medium text-success' : 'text-muted-foreground'}`}>
               {price?.discountLabel ?? 'total do período'}
             </p>
