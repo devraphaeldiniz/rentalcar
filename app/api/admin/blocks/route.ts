@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { createAuditLog } from '@/lib/security/audit'
 import { todayIso } from '@/lib/rental'
 import { blockInput, type VehicleBlock } from '@/lib/vehicle-blocks'
@@ -12,7 +13,8 @@ const FIELDS = 'id vehicle_id start_date end_date reason notes created_at'
 
 /** Bloqueios que ainda não terminaram, com o carro. */
 export async function GET() {
-  if (!(await requireAdmin())) return unauthorized()
+  const viewer = await requireAdminView()
+  if (!viewer) return unauthorized()
   try {
     const data = await adminGraphql<{ vehicle_blocks: VehicleBlock[]; vehicles: { id: string; brand: string; model: string; plate: string | null }[] }>(
       `query Blocks($today: date!) {
@@ -21,10 +23,10 @@ export async function GET() {
       }`,
       { today: todayIso() },
     )
-    return NextResponse.json({ blocks: data.vehicle_blocks, vehicles: data.vehicles })
+    return viewerJson(viewer, { blocks: data.vehicle_blocks, vehicles: data.vehicles })
   } catch (error) {
     console.error('[admin/blocks]', error)
-    return NextResponse.json({ error: 'Não foi possível carregar os bloqueios. A migração 014 já foi aplicada?' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Não foi possível carregar os bloqueios. A migração 014 já foi aplicada?' }, { status: 500 })
   }
 }
 

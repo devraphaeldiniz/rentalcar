@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { Activity, AlertTriangle, CheckCircle2, Monitor, Server } from 'lucide-react'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { maskPersonalData } from '@/lib/demo-admin'
 import { type ErrorRow, groupErrors } from '@/lib/monitoring/summary'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,8 @@ const when = (iso: string) =>
 
 export default async function ErrorsPage() {
   // Repetida aqui porque a página também é carregada sozinha na navegação do painel.
-  if (!(await requireAdmin())) redirect('/')
+  const viewer = await requireAdminView()
+  if (!viewer) redirect('/')
 
   const since = new Date(Date.now() - DAYS * 86_400_000).toISOString()
   const started = Date.now()
@@ -30,9 +32,10 @@ export default async function ErrorsPage() {
       { since },
     )
     dbMs = Date.now() - started
-    rows = data.app_errors
-    // Retenção: erros com mais de 30 dias não ajudam mais e só ocupam espaço.
-    await adminGraphql('mutation Old($before: timestamptz!) { delete_app_errors(where: { created_at: { _lt: $before } }) { affected_rows } }', {
+    // Painel de demonstração: as mensagens já saem sem dados pessoais, mas mascara de novo por garantia.
+    rows = viewer.demo ? maskPersonalData(data.app_errors) : data.app_errors
+    // Retenção: erros com mais de 30 dias não ajudam mais e só ocupam espaço (só um admin de verdade apaga).
+    if (!viewer.demo) await adminGraphql('mutation Old($before: timestamptz!) { delete_app_errors(where: { created_at: { _lt: $before } }) { affected_rows } }', {
       before: new Date(Date.now() - KEEP_DAYS * 86_400_000).toISOString(),
     }).catch(() => {})
   } catch (error) {
