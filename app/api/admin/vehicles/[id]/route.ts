@@ -104,10 +104,15 @@ export async function DELETE(
     const result = await response.json()
 
     if (result.errors) {
-      return NextResponse.json(
-        { error: result.errors[0].message },
-        { status: 500 }
-      )
+      // bookings.vehicle_id é ON DELETE RESTRICT: carro com reservas não sai do banco.
+      const message = JSON.stringify(result.errors)
+      if (message.includes('foreign key') || message.includes('constraint-violation')) {
+        return NextResponse.json(
+          { error: 'Este carro tem reservas no histórico e não pode ser excluído. Marque-o como indisponível.' },
+          { status: 409 }
+        )
+      }
+      return NextResponse.json({ error: 'Não foi possível excluir o veículo.' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
