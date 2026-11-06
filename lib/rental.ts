@@ -53,6 +53,16 @@ export function todayIso(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
 }
 
+/** A retirada já começou (ou é hoje), no calendário de Brasília: a partir daí o cliente não cancela sozinho. */
+export function pickupStarted(startDate: string, now: Date = new Date()): boolean {
+  return startDate <= todayIso(now)
+}
+
+/** Data de retirada que já passou, no calendário de Brasília. */
+export function isPastDate(date: string, now: Date = new Date()): boolean {
+  return date < todayIso(now)
+}
+
 export function addDaysIso(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + days)

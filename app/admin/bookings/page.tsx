@@ -24,6 +24,8 @@ import { Search, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatBRL } from '@/lib/rental'
+import { useConfirm } from '@/components/admin/confirm-dialog'
+import { useToast } from '@/lib/contexts/toast-context'
 
 type Booking = {
   id: string
@@ -51,6 +53,8 @@ const statusConfig = {
 }
 
 export default function BookingsAdminPage() {
+  const { confirm, dialog } = useConfirm()
+  const { showToast } = useToast()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -74,7 +78,13 @@ export default function BookingsAdminPage() {
 
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     const action = newStatus === 'confirmed' ? 'aprovar' : 'cancelar'
-    if (!confirm(`Deseja realmente ${action} esta reserva?`)) return
+    const ok = await confirm({
+      title: newStatus === 'confirmed' ? 'Aprovar esta reserva?' : 'Cancelar esta reserva?',
+      description: newStatus === 'cancelled' ? 'O carro volta a ficar livre no período e o uso do cupom, se houver, é devolvido.' : undefined,
+      confirmLabel: newStatus === 'confirmed' ? 'Aprovar' : 'Cancelar reserva',
+      destructive: newStatus === 'cancelled',
+    })
+    if (!ok) return
 
     try {
       console.log(`Updating booking ${bookingId} to ${newStatus}`)
@@ -89,14 +99,14 @@ export default function BookingsAdminPage() {
       console.log('Update result:', result)
 
       if (response.ok) {
-        alert(`Reserva ${action === 'aprovar' ? 'aprovada' : 'cancelada'} com sucesso!`)
+        showToast(`Reserva ${action === 'aprovar' ? 'aprovada' : 'cancelada'}.`, 'success')
         fetchBookings()
       } else {
-        alert(`Erro ao ${action} reserva: ${result.error}`)
+        showToast(result.error || `Não foi possível ${action} a reserva.`, 'error')
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
-      alert('Erro ao atualizar reserva')
+      showToast('Erro ao atualizar a reserva.', 'error')
     }
   }
 
@@ -115,6 +125,7 @@ export default function BookingsAdminPage() {
 
   return (
     <div className="p-8">
+      {dialog}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Reservas</h1>
         <p className="text-muted-foreground">Gerencie todas as reservas do sistema</p>

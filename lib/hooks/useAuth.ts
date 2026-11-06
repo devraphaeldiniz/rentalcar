@@ -12,6 +12,7 @@ type User = {
   avatarUrl?: string
   phoneNumber?: string
   createdAt: string
+  demo?: { limits: { openBookings: number; maxDays: number; maxAdvanceDays: number }; onlinePayment: boolean } | null
 }
 
 export function useAuth() {

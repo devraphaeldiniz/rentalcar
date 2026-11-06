@@ -67,6 +67,12 @@ export default function CheckoutPage() {
   const [coupon, setCoupon] = useState(search.get('cupom') ?? '')
   const [couponError, setCouponError] = useState('')
   const [serverQuote, setServerQuote] = useState<Quote | null>(null)
+  // Conta de demonstração: sem pagamento online (a não ser que o servidor permita) e com limites.
+  const demo = user?.demo ?? null
+  const onlineAllowed = ONLINE_PAYMENT && (!demo || demo.onlinePayment)
+  useEffect(() => {
+    if (!onlineAllowed) setPayMethod('on_pickup')
+  }, [onlineAllowed])
   const [quoting, setQuoting] = useState(false)
 
   useEffect(() => {
@@ -272,7 +278,18 @@ export default function CheckoutPage() {
             onToggleAddon={toggleAddon}
           />
 
-          {ONLINE_PAYMENT && (
+          {demo && (
+            <section className="rounded-2xl border border-electric/40 bg-electric/5 p-5 text-sm" aria-label="Conta de demonstração">
+              <h2 className="font-bold">Você está na conta de demonstração</h2>
+              <p className="mt-1 text-muted-foreground">
+                Ela é compartilhada por quem visita o projeto, então tem limites: até {demo.limits.openBookings} reservas abertas,
+                até {demo.limits.maxDays} diárias e retirada nos próximos {demo.limits.maxAdvanceDays} dias
+                {demo.onlinePayment ? '.' : '. O pagamento fica para a retirada, sem cobrança online.'}
+              </p>
+            </section>
+          )}
+
+          {onlineAllowed && (
             <fieldset className="rounded-2xl border bg-card p-5">
               <legend className="sr-only">Forma de pagamento</legend>
               <h2 className="text-lg font-bold">Como você quer pagar?</h2>

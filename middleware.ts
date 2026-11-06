@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { DEMO_ADMIN_COOKIE, DEMO_ADMIN_LOCKED_MESSAGE } from '@/lib/demo-admin'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Painel de demonstração: alterações recebem uma mensagem clara. A segurança não depende
+  // deste cookie: a conta de demonstração tem papel "client" e o requireAdmin recusa de qualquer jeito.
+  if (pathname.startsWith('/api/admin') && request.method !== 'GET' && request.cookies.get(DEMO_ADMIN_COOKIE)?.value === '1') {
+    return NextResponse.json({ error: DEMO_ADMIN_LOCKED_MESSAGE, demo: true }, { status: 403 })
+  }
 
   // Rotas protegidas
   const protectedRoutes = ['/profile', '/admin', '/bookings']
@@ -35,5 +42,6 @@ export const config = {
     '/profile/:path*',
     '/admin/:path*',
     '/bookings/:path*',
+    '/api/admin/:path*',
   ],
 }
