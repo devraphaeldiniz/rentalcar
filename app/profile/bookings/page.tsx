@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewForm } from '@/components/reviews/review-form'
+import { compareInspections, fuelLabel, type Inspection } from '@/lib/inspections'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { BOOKING_STATUS, formatBRL, formatLongDate, pluralDays, rentalDays, todayIso } from '@/lib/rental'
 
@@ -17,6 +18,7 @@ type Booking = {
   status: string
   created_at: string
   reviews?: { id: string }[]
+  inspections?: Pick<Inspection, 'kind' | 'odometer_km' | 'fuel_eighths' | 'damages' | 'extra_charges' | 'extra_total'>[]
   vehicle: { id: string; brand: string; model: string; images: string[] | null; image_url: string | null } | null
 }
 
@@ -132,12 +134,18 @@ export default function MyBookingsPage() {
                     <p className="text-sm">
                       {formatLongDate(b.start_date)} até {formatLongDate(b.end_date)}
                     </p>
+                    <InspectionNote inspections={b.inspections} />
                     <div className="mt-auto flex flex-wrap items-end justify-between gap-3">
                       <p>
                         <span className="text-xl font-bold">{formatBRL(Number(b.total_amount))}</span>
                         <span className="ml-2 text-sm text-muted-foreground">{pluralDays(rentalDays(b.start_date, b.end_date))}</span>
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="ghost" size="sm">
+                          <a href={`/api/bookings/${b.id}/contract`} target="_blank" rel="noreferrer">
+                            <FileText className="h-4 w-4" aria-hidden /> Contrato
+                          </a>
+                        </Button>
                         {canReview && (
                           <Button variant="outline" size="sm" onClick={() => setReviewing(reviewing === b.id ? null : b.id)}>
                             Avaliar o carro
@@ -181,5 +189,28 @@ export default function MyBookingsPage() {
         </ul>
       )}
     </main>
+  )
+}
+
+/** Resumo da vistoria para o cliente: o que foi anotado na retirada e na devolução. */
+function InspectionNote({ inspections }: { inspections?: Booking['inspections'] }) {
+  const pickup = inspections?.find((i) => i.kind === 'pickup')
+  if (!pickup) return null
+  const ret = inspections?.find((i) => i.kind === 'return')
+  const c = ret ? compareInspections(pickup, ret) : null
+  return (
+    <div className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+      <p>
+        <span className="font-semibold text-foreground">Vistoria na retirada:</span> {pickup.odometer_km.toLocaleString('pt-BR')} km, {fuelLabel(pickup.fuel_eighths).toLowerCase()}
+        {pickup.damages.length > 0 ? `, ${pickup.damages.length} avaria(s) já existente(s)` : ', sem avarias'}.
+      </p>
+      {ret && c && (
+        <p className="mt-0.5">
+          <span className="font-semibold text-foreground">Na devolução:</span> você rodou {c.km.toLocaleString('pt-BR')} km
+          {c.missingEighths > 0 ? `, voltou com ${c.missingEighths}/8 a menos no tanque` : ', combustível em dia'}
+          {Number(ret.extra_total) > 0 ? `. Cobranças extras: ${formatBRL(Number(ret.extra_total))} (${ret.extra_charges.map((x) => x.label).join(', ')}).` : '. Nenhuma cobrança extra.'}
+        </p>
+      )}
+    </div>
   )
 }

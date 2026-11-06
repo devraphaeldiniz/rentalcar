@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 export async function POST(req: NextRequest) {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
@@ -20,7 +21,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     // Aqui você buscaria as configurações do banco de dados
     const settings = {
@@ -37,9 +39,9 @@ export async function GET() {
       cancellationDeadline: 24
     }
 
-    return NextResponse.json({ settings })
+    return viewerJson(viewer, { settings })
   } catch (error) {
-    return NextResponse.json(
+    return viewerJson(viewer, 
       { error: 'Erro ao buscar configurações' },
       { status: 500 }
     )

@@ -5,9 +5,11 @@ import { ThemeProvider } from "@/lib/contexts/theme-context"
 import { ToastProvider } from "@/lib/contexts/toast-context"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
+import { WhatsappButton } from "@/components/layout/whatsapp-button"
 import { CookieConsent } from "@/components/analytics/cookie-consent"
 import { PageTracker } from "@/components/analytics/page-tracker"
 import { SITE_URL } from "@/lib/site"
+import { ErrorReporter } from "@/components/monitoring/error-reporter"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,8 +62,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <div className="flex-1">{children}</div>
           <Footer />
+          <WhatsappButton />
           <CookieConsent />
           <PageTracker />
+          <ErrorReporter />
           </ToastProvider>
         </ThemeProvider>
       </body>

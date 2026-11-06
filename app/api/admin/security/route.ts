@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
+import { requireAdmin, adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 type Count = { aggregate: { count: number } }
 
 export async function GET() {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   // Indicadores das últimas 24 horas, a partir das tabelas reais.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -47,7 +49,7 @@ export async function GET() {
       { since },
     )
 
-    return NextResponse.json({
+    return viewerJson(viewer, {
       totalLogins: data.total.aggregate.count,
       failedLogins: data.failed.aggregate.count,
       activeUsers: data.activeUsers.length,
@@ -64,6 +66,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('[admin/security]', error)
-    return NextResponse.json({ error: 'Erro ao carregar dados de segurança' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar dados de segurança' }, { status: 500 })
   }
 }

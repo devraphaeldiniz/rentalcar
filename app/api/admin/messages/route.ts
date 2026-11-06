@@ -1,18 +1,20 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
+import { requireAdmin, adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 export async function GET() {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await adminGraphql<{ contact_messages: unknown[] }>(
       `query Messages { contact_messages(order_by: { created_at: desc }, limit: 200) { id name email phone subject message read created_at } }`,
     )
-    return NextResponse.json({ messages: data.contact_messages })
+    return viewerJson(viewer, { messages: data.contact_messages })
   } catch (error) {
     console.error('[admin/messages]', error)
-    return NextResponse.json({ error: 'Erro ao carregar as mensagens' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar as mensagens' }, { status: 500 })
   }
 }
 
