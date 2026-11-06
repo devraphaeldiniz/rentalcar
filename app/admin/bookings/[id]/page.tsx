@@ -1,5 +1,6 @@
 'use client'
 
+import { InspectionPanel } from '@/components/admin/inspection-panel'
 import type { PriceLine } from '@/lib/pricing'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -393,6 +394,17 @@ export default function BookingDetailsPage() {
               </Alert>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Vistoria de retirada e devolução */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Vistoria</CardTitle>
+          <CardDescription>Quilometragem, combustível e avarias na retirada e na devolução</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InspectionPanel bookingId={booking.id} status={booking.status} onSaved={fetchBooking} />
         </CardContent>
       </Card>
 
