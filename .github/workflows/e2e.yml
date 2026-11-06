@@ -1,0 +1,58 @@
+name: E2E
+
+# Roda os testes de ponta a ponta (Playwright) contra o site publicado pela Vercel:
+# a cada preview/produção que termina de subir, ou manualmente com qualquer endereço.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Endereço do site (ex.: https://rentalcar-eight.vercel.app)
+        required: true
+        default: https://rentalcar-eight.vercel.app
+      booking:
+        description: Fazer uma reserva de verdade com a conta de demonstração (e cancelar no fim)
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-${{ github.event.deployment_status.target_url || inputs.url }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      E2E_BASE_URL: ${{ github.event.deployment_status.target_url || inputs.url }}
+      E2E_BOOKING: ${{ inputs.booking && '1' || '0' }}
+      # Opcional: Vercel > Settings > Deployment Protection > Protection Bypass for Automation
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes de ponta a ponta
+        run: npm run test:e2e
+
+      - name: Relatório
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

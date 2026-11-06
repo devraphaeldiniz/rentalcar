@@ -9,6 +9,7 @@
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "db:setup": "node scripts/setup-nhost.mjs",
     "user:create": "node scripts/create-user.mjs"
   },
@@ -55,6 +56,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
+    "@playwright/test": "1.63.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22",
     "@types/papaparse": "^5.5.0",
