@@ -3,12 +3,15 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { reportClientError } from '@/lib/monitoring/report-client'
 
 // Captura erros inesperados de qualquer página: em vez de tela branca,
 // a pessoa vê o que aconteceu e tem como seguir.
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error)
+    // Com digest, o erro aconteceu no servidor e já foi registrado lá (instrumentation.ts).
+    if (!error.digest) reportClientError(error, 'render')
   }, [error])
 
   return (
