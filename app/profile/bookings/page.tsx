@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewForm } from '@/components/reviews/review-form'
 import { compareInspections, fuelLabel, type Inspection } from '@/lib/inspections'
@@ -140,7 +140,12 @@ export default function MyBookingsPage() {
                         <span className="text-xl font-bold">{formatBRL(Number(b.total_amount))}</span>
                         <span className="ml-2 text-sm text-muted-foreground">{pluralDays(rentalDays(b.start_date, b.end_date))}</span>
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button asChild variant="ghost" size="sm">
+                          <a href={`/api/bookings/${b.id}/contract`} target="_blank" rel="noreferrer">
+                            <FileText className="h-4 w-4" aria-hidden /> Contrato
+                          </a>
+                        </Button>
                         {canReview && (
                           <Button variant="outline" size="sm" onClick={() => setReviewing(reviewing === b.id ? null : b.id)}>
                             Avaliar o carro

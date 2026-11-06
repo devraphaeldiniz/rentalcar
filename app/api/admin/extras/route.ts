@@ -2,21 +2,23 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { createAuditLog } from '@/lib/security/audit'
 
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await adminGraphql<{ rental_extras: unknown[] }>(
       `query AllExtras { rental_extras(order_by: [{ kind: desc }, { sort: asc }]) {
         id code kind name description price pricing max_total is_default active sort
       } }`,
     )
-    return NextResponse.json({ extras: data.rental_extras })
+    return viewerJson(viewer, { extras: data.rental_extras })
   } catch (error) {
     console.error('[admin/extras]', error)
-    return NextResponse.json({ error: 'Erro ao carregar proteções e opcionais' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar proteções e opcionais' }, { status: 500 })
   }
 }
 

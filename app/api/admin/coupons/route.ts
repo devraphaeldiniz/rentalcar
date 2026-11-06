@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { normalizeCoupon } from '@/lib/pricing-rules'
 import { isIsoDate } from '@/lib/rental'
 import { createAuditLog } from '@/lib/security/audit'
@@ -27,13 +28,14 @@ const create = z
 const unauthorized = () => NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
 export async function GET() {
-  if (!(await requireAdmin())) return unauthorized()
+  const viewer = await requireAdminView()
+  if (!viewer) return unauthorized()
   try {
     const data = await adminGraphql<{ coupons: unknown[] }>(`query C { coupons(order_by: { created_at: desc }) { ${FIELDS} } }`)
-    return NextResponse.json({ coupons: data.coupons })
+    return viewerJson(viewer, { coupons: data.coupons })
   } catch (error) {
     console.error('[admin/coupons]', error)
-    return NextResponse.json({ error: 'Erro ao carregar os cupons' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar os cupons' }, { status: 500 })
   }
 }
 
