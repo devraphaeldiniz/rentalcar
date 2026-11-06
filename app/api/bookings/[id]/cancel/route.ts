@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { pickupStarted } from '@/lib/rental'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
@@ -24,8 +25,8 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!['pending', 'confirmed'].includes(b.status)) {
       return NextResponse.json({ error: 'Esta reserva não pode mais ser cancelada.' }, { status: 409 })
     }
-    const today = new Date().toISOString().slice(0, 10)
-    if (b.start_date <= today) {
+    // Calendário de Brasília: em UTC, depois das 21h a retirada de amanhã já parecia ser hoje.
+    if (pickupStarted(b.start_date)) {
       return NextResponse.json({ error: 'A retirada já começou. Fale com o atendimento para cancelar.' }, { status: 409 })
     }
 
