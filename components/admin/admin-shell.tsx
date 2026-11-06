@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
+  Activity,
   LayoutDashboard,
   Users,
   Car,
@@ -44,6 +45,7 @@ const menuItems = [
   { icon: FileBarChart, label: 'Relatórios', href: '/admin/reports' },
   { icon: TrendingUp, label: 'Estatísticas', href: '/admin/analytics' },
   { icon: Filter, label: 'Funil e visitas', href: '/admin/funil' },
+  { icon: Activity, label: 'Erros e saúde', href: '/admin/erros' },
   { icon: Settings, label: 'Configurações', href: '/admin/settings' },
 ]
 
