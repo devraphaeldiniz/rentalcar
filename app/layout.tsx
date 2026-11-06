@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/footer"
 import { CookieConsent } from "@/components/analytics/cookie-consent"
 import { PageTracker } from "@/components/analytics/page-tracker"
 import { SITE_URL } from "@/lib/site"
+import { ErrorReporter } from "@/components/monitoring/error-reporter"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Footer />
           <CookieConsent />
           <PageTracker />
+          <ErrorReporter />
           </ToastProvider>
         </ThemeProvider>
       </body>

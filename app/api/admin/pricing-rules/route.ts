@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { isIsoDate } from '@/lib/rental'
 import { createAuditLog } from '@/lib/security/audit'
 
@@ -23,15 +24,16 @@ const create = z.discriminatedUnion('kind', [
 const unauthorized = () => NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
 export async function GET() {
-  if (!(await requireAdmin())) return unauthorized()
+  const viewer = await requireAdminView()
+  if (!viewer) return unauthorized()
   try {
     const data = await adminGraphql<{ pricing_rules: unknown[] }>(
       `query R { pricing_rules(order_by: [{ kind: asc }, { min_days: asc }, { start_date: asc }]) { ${FIELDS} } }`,
     )
-    return NextResponse.json({ rules: data.pricing_rules })
+    return viewerJson(viewer, { rules: data.pricing_rules })
   } catch (error) {
     console.error('[admin/pricing-rules]', error)
-    return NextResponse.json({ error: 'Erro ao carregar as regras' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar as regras' }, { status: 500 })
   }
 }
 

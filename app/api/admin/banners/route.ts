@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { BANNER_FIELDS, PLACEMENTS, TONES } from '@/lib/banners'
 import { normalizeCoupon } from '@/lib/pricing-rules'
 import { isIsoDate } from '@/lib/rental'
@@ -32,13 +33,14 @@ const create = z
 const unauthorized = () => NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
 export async function GET() {
-  if (!(await requireAdmin())) return unauthorized()
+  const viewer = await requireAdminView()
+  if (!viewer) return unauthorized()
   try {
     const data = await adminGraphql<{ banners: unknown[] }>(`query B { banners(order_by: [{ placement: asc }, { sort: asc }]) { ${BANNER_FIELDS} } }`)
-    return NextResponse.json({ banners: data.banners })
+    return viewerJson(viewer, { banners: data.banners })
   } catch (error) {
     console.error('[admin/banners]', error)
-    return NextResponse.json({ error: 'Erro ao carregar os banners' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar os banners' }, { status: 500 })
   }
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
+  Activity,
   LayoutDashboard,
   Users,
   Car,
@@ -22,10 +23,13 @@ import {
   Tags,
   Megaphone,
   CalendarClock,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
 import { Logo } from '@/components/brand/logo'
+import { useToast } from '@/lib/contexts/toast-context'
+import { DEMO_ADMIN_LOCKED_MESSAGE } from '@/lib/demo-admin'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
@@ -41,13 +45,31 @@ const menuItems = [
   { icon: FileBarChart, label: 'Relatórios', href: '/admin/reports' },
   { icon: TrendingUp, label: 'Estatísticas', href: '/admin/analytics' },
   { icon: Filter, label: 'Funil e visitas', href: '/admin/funil' },
+  { icon: Activity, label: 'Erros e saúde', href: '/admin/erros' },
   { icon: Settings, label: 'Configurações', href: '/admin/settings' },
 ]
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const { showToast } = useToast()
+
+  // Modo demonstração: qualquer tentativa de alterar algo vira um aviso claro, em todas as telas.
+  useEffect(() => {
+    if (!demo) return
+    const original = window.fetch
+    window.fetch = async (input, init) => {
+      const response = await original(input, init)
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
+      if (response.status === 403 && method !== 'GET' && url.includes('/api/admin')) showToast(DEMO_ADMIN_LOCKED_MESSAGE, 'info')
+      return response
+    }
+    return () => {
+      window.fetch = original
+    }
+  }, [demo, showToast])
 
   useEffect(() => { setOpen(false) }, [pathname])
 
@@ -71,7 +93,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-[4.5rem] items-center justify-between border-b border-white/5 px-5">
           <Logo href="/admin" onDark tagline={false} />
-          <span className="rounded-md bg-[hsl(186_100%_50%/0.12)] px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider text-[hsl(186_100%_60%)]">Admin</span>
+          <span className="rounded-md bg-[hsl(186_100%_50%/0.12)] px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider text-[hsl(186_100%_60%)]">{demo ? 'Demo' : 'Admin'}</span>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Painel">
@@ -124,6 +146,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </p>
           <ThemeToggle />
         </div>
+        {demo && (
+          <div role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-electric/30 bg-electric/10 px-4 py-2.5 text-sm lg:px-8">
+            <Eye className="h-4 w-4 shrink-0 text-electric" aria-hidden />
+            <span className="font-semibold">Painel de demonstração</span>
+            <span className="text-muted-foreground">Os dados são reais, mas nomes, e-mails, telefones e CPFs aparecem mascarados e nada pode ser alterado.</span>
+          </div>
+        )}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>

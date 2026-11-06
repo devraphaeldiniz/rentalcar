@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 import type { PriceLine } from '@/lib/pricing'
@@ -107,6 +107,11 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild variant="brand"><Link href="/profile/bookings">Ver minhas reservas</Link></Button>
+        <Button asChild variant="outline">
+          <a href={`/api/bookings/${booking.id}/contract`} target="_blank" rel="noreferrer">
+            <FileText className="h-4 w-4" aria-hidden /> Contrato (PDF)
+          </a>
+        </Button>
         <Button asChild variant="outline"><Link href="/">Voltar aos carros</Link></Button>
       </div>
     </main>
