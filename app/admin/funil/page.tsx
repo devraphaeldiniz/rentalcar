@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Eye, MousePointerClick, ShoppingCart, Users, Smartphone, Monitor, Tablet, LogOut as Exit } from 'lucide-react'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { maskPersonalData } from '@/lib/demo-admin'
 import { addDaysIso, formatBRL, todayIso } from '@/lib/rental'
 import { OUTCOME_LABELS, summarize, type RawEvent, type SessionOutcome } from '@/lib/analytics/summary'
 import { FEEDBACK_REASONS } from '@/lib/analytics/events'
@@ -29,7 +30,8 @@ const minutes = (a: string, b: string) => Math.max(1, Math.round((new Date(b).ge
 export default async function FunnelPage(props: { searchParams: Promise<{ periodo?: string }> }) {
   // O layout já barra quem não é admin; a checagem se repete aqui porque a
   // página também é carregada sozinha na navegação entre telas do painel.
-  if (!(await requireAdmin())) redirect('/')
+  const viewer = await requireAdminView()
+  if (!viewer) redirect('/')
 
   const { periodo } = await props.searchParams
   const period = PERIODS.find((p) => String(p) === periodo) ?? 30
@@ -53,6 +55,8 @@ export default async function FunnelPage(props: { searchParams: Promise<{ period
     console.error('[admin/funil]', e)
     error = true
   }
+  // Painel de demonstração: comentários e metadados saem sem e-mail, telefone ou CPF.
+  if (data && viewer.demo) data = maskPersonalData(data)
 
   if (error || !data) {
     return (

@@ -4,6 +4,7 @@ import { authUrl, adminGraphql, cookieOptions, ACCESS_COOKIE, REFRESH_COOKIE, AC
 import { checkLoginRateLimit, recordLoginAttempt } from '@/lib/security/rate-limit'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
+import { DEMO_ADMIN_COOKIE } from '@/lib/demo-admin'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ success: true })
     res.cookies.set(ACCESS_COOKIE, session.accessToken, cookieOptions(ACCESS_MAX_AGE))
     res.cookies.set(REFRESH_COOKIE, session.refreshToken, cookieOptions(REFRESH_MAX_AGE))
+    res.cookies.set(DEMO_ADMIN_COOKIE, '', cookieOptions(0))
     return res
   } catch (error) {
     console.error('[signin]', error)

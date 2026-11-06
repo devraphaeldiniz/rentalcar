@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import { isDemoAdminAccount } from '@/lib/demo'
 
 // Único ponto de verdade sobre "quem é o usuário" no servidor.
 // Nenhuma rota deve decodificar o JWT por conta própria: só um token
@@ -135,4 +136,18 @@ export async function requireAdmin(): Promise<AuthUser | null> {
   const user = await requireUser()
   if (!user) return null
   return (await getUserRole(user.userId)) === 'admin' ? user : null
+}
+
+export type AdminViewer = AuthUser & { demo: boolean }
+
+/**
+ * Quem pode VER o painel: admins e a conta de demonstração do admin (DEMO_ADMIN_EMAIL).
+ * A conta de demonstração tem papel "client" no banco, então qualquer rota que altera algo
+ * (requireAdmin) continua recusando: o modo demonstração é só leitura por construção.
+ */
+export async function requireAdminView(): Promise<AdminViewer | null> {
+  const user = await requireUser()
+  if (!user) return null
+  if ((await getUserRole(user.userId)) === 'admin') return { ...user, demo: false }
+  return isDemoAdminAccount(user.email) ? { ...user, demo: true } : null
 }

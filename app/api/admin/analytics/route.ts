@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
+import { requireAdmin, adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 // Indicadores calculados a partir das reservas reais (antes havia números fixos).
 // Receita considera só reservas não canceladas.
@@ -11,7 +12,8 @@ const monthKey = (iso: string) => iso.slice(0, 7)
 const growth = (now: number, before: number) => (before > 0 ? Math.round(((now - before) / before) * 100) : now > 0 ? 100 : 0)
 
 export async function GET() {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   try {
     const data = await adminGraphql<{
@@ -50,7 +52,7 @@ export async function GET() {
     const usersThisMonth = data.users.filter((u) => monthKey(u.createdAt) === thisMonth).length
     const usersPrev = data.users.filter((u) => monthKey(u.createdAt) === prev).length
 
-    return NextResponse.json({
+    return viewerJson(viewer, {
       analytics: {
         revenue: {
           total: valid.reduce((s, b) => s + Number(b.total_amount), 0),
@@ -76,6 +78,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('[admin/analytics]', error)
-    return NextResponse.json({ error: 'Erro ao calcular os indicadores' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao calcular os indicadores' }, { status: 500 })
   }
 }
