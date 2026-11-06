@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { after, type NextRequest, NextResponse } from 'next/server'
 import { adminGraphql, requireUser } from '@/lib/auth/authorization'
+import { type CnhData, cnhProblems } from '@/lib/cnh'
 import { demoBookingProblem, demoOnlinePayment, isDemoAccount } from '@/lib/demo'
 import { todayIso } from '@/lib/rental'
 import { createAuditLog } from '@/lib/security/audit'
@@ -60,6 +61,19 @@ export async function POST(req: NextRequest) {
     // Sem Mercado Pago configurado, toda reserva continua com pagamento na retirada.
     // Na demonstração, só paga online se DEMO_ONLINE_PAYMENT=on (credenciais de teste).
     const payment_method = parsed.data.payment_method === 'online' && onlinePaymentEnabled() && (!demo || demoOnlinePayment()) ? 'online' : 'on_pickup'
+
+    // CNH válida na retirada e com 2 anos de habilitação (a conta de demonstração não guarda documento).
+    if (!demo) {
+      const profile = await adminGraphql<{ profiles_by_pk: CnhData | null }>(
+        'query Cnh($id: uuid!) { profiles_by_pk(id: $id) { cnh_number cnh_category cnh_expires_on cnh_first_issued_on } }',
+        { id: user_id },
+      ).catch(() => null)
+      // Sem a migração 016 aplicada, a reserva segue como antes.
+      if (profile) {
+        const problems = cnhProblems(profile.profiles_by_pk, start_date)
+        if (problems.length > 0) return NextResponse.json({ error: problems[0], cnh: problems }, { status: 422 })
+      }
+    }
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
     const headers = { 'Content-Type': 'application/json', 'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET! }
