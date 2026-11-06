@@ -24,6 +24,7 @@ import {
   rentalDays,
   todayIso,
 } from '@/lib/rental'
+import { CnhForm } from '@/components/client/cnh-form'
 
 // Pagamento online só aparece com a chave pública do Mercado Pago configurada.
 const ONLINE_PAYMENT = Boolean(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY)
@@ -62,6 +63,8 @@ export default function CheckoutPage() {
   const [protection, setProtection] = useState('')
   const [addons, setAddons] = useState<string[]>([])
   const [acceptTerms, setAcceptTerms] = useState(false)
+  // A CNH precisa servir para a data de retirada (o servidor confere de novo ao criar a reserva).
+  const [cnhReady, setCnhReady] = useState(false)
   const [payMethod, setPayMethod] = useState<'online' | 'on_pickup'>(ONLINE_PAYMENT ? 'online' : 'on_pickup')
   const [couponInput, setCouponInput] = useState(search.get('cupom') ?? '')
   const [coupon, setCoupon] = useState(search.get('cupom') ?? '')
@@ -320,6 +323,12 @@ export default function CheckoutPage() {
             </fieldset>
           )}
 
+          <section className="rounded-2xl border bg-card p-5" aria-labelledby="cnh-titulo">
+            <h2 id="cnh-titulo" className="text-lg font-bold">Sua CNH</h2>
+            <p className="mb-3 mt-1 text-sm text-muted-foreground">Conferimos antes de confirmar: válida na retirada e com pelo menos 2 anos de habilitação.</p>
+            <CnhForm pickupDate={validPeriod ? start : undefined} onReady={setCnhReady} />
+          </section>
+
           <section className="rounded-2xl border bg-card p-5">
             <h2 className="text-lg font-bold">Antes de confirmar</h2>
             <ul className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
@@ -402,7 +411,8 @@ export default function CheckoutPage() {
 
           {error && <p role="alert" className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || !quote || submitting}>
+          {!cnhReady && <p className="mt-4 text-sm text-muted-foreground">Cadastre ou atualize sua CNH acima para confirmar.</p>}
+          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || !quote || submitting || !cnhReady}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {submitting ? 'Confirmando...' : payMethod === 'online' ? 'Continuar para o pagamento' : 'Confirmar reserva'}
           </Button>

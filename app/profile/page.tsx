@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { CnhForm } from '@/components/client/cnh-form'
 
 type Profile = { full_name: string | null; phone: string | null; cpf: string | null; email: string; role: string; created_at: string }
 
@@ -109,6 +110,14 @@ export default function ProfilePage() {
         {saveMsg && <Notice {...saveMsg} />}
         <div><Button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar dados'}</Button></div>
       </form>
+
+      <section className="mt-6 grid gap-3 rounded-lg border p-5" aria-labelledby="cnh-perfil">
+        <div>
+          <h2 id="cnh-perfil" className="text-lg font-bold">CNH</h2>
+          <p className="text-sm text-muted-foreground">Usada para conferir, antes de cada reserva, se a carteira vale na data da retirada.</p>
+        </div>
+        <CnhForm />
+      </section>
 
       <form onSubmit={changePassword} className="mt-6 grid gap-4 rounded-lg border p-5">
         <h2 className="text-lg font-bold">Trocar senha</h2>
