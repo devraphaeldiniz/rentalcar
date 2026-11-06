@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { requireUser, getUserRole } from '@/lib/auth/authorization'
+import { demoInfo } from '@/lib/demo'
 
 export async function GET() {
   const auth = await requireUser()
@@ -18,6 +19,8 @@ export async function GET() {
       // Mesma fonte que o requireAdmin usa para liberar /api/admin/*
       role: await getUserRole(auth.userId),
       createdAt: user.createdAt ?? null,
+      // Conta de demonstração: limites que o checkout mostra antes de enviar.
+      demo: demoInfo(user.email),
     },
   })
 }

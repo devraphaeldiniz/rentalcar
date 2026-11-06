@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import type { PriceLine } from '@/lib/pricing'
 import { addDaysIso, formatBRL, MAX_RENTAL_DAYS, pluralDays, rentalDays, todayIso } from '@/lib/rental'
 
 type Props = {
@@ -25,6 +26,36 @@ export function ReserveBox({ vehicleId, dailyRate, initialStart, initialEnd, ava
   const days = start && end ? rentalDays(start, end) : 0
   const valid = start >= today && days >= 1 && days <= MAX_RENTAL_DAYS
 
+  // Mesma cotação do checkout (temporada e desconto por duração), calculada no servidor.
+  const [quote, setQuote] = useState<{ key: string; lines: PriceLine[]; rental: number } | null>(null)
+  const key = `${start}|${end}`
+  useEffect(() => {
+    if (!valid) return
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vehicle_id: vehicleId, start_date: start, end_date: end }),
+          signal: controller.signal,
+        })
+        if (!res.ok) return
+        const data = (await res.json()) as { quote: { base: number; discount: number; lines: PriceLine[] } }
+        const lines = data.quote.lines.filter((l) => l.kind === 'base' || l.kind === 'season' || l.kind === 'discount')
+        setQuote({ key: `${start}|${end}`, lines, rental: data.quote.base - data.quote.discount })
+      } catch {
+        // Sem a cotação, a caixa continua mostrando diária × dias.
+      }
+    }, 250)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [vehicleId, start, end, valid])
+  const current = quote?.key === key ? quote : null
+  const adjusted = current?.lines.some((l) => l.kind !== 'base') ?? false
+
   return (
     <div className="rounded-2xl border bg-card p-6 shadow-xl shadow-black/10">
       <p className="text-xs text-muted-foreground">Valor da diária</p>
@@ -43,10 +74,30 @@ export function ReserveBox({ vehicleId, dailyRate, initialStart, initialEnd, ava
         </div>
       </div>
 
-      <div className="mt-5 flex items-end justify-between border-t pt-4">
-        <span className="text-sm text-muted-foreground">{valid ? `${pluralDays(days)} de ${formatBRL(dailyRate)}` : 'Escolha um período válido'}</span>
-        {valid && <span className="text-xl font-bold"><span className="tabular font-black text-electric">{formatBRL(dailyRate * days)}</span></span>}
+      {valid && adjusted && current && (
+        <ul className="mt-5 space-y-1 border-t pt-4 text-sm" aria-label="Detalhe das diárias">
+          {current.lines.map((l) => (
+            <li key={`${l.kind}-${l.code}`} className="flex justify-between gap-3">
+              <span className={l.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>{l.label}</span>
+              <span className={`tabular ${l.amount < 0 ? 'font-semibold text-emerald-600 dark:text-emerald-400' : ''}`}>
+                {l.amount < 0 ? `− ${formatBRL(-l.amount)}` : formatBRL(l.amount)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className={`flex items-end justify-between ${valid && adjusted ? 'mt-3 pt-3 border-t border-dashed' : 'mt-5 border-t pt-4'}`}>
+        <span className="text-sm text-muted-foreground">
+          {!valid ? 'Escolha um período válido' : adjusted ? `Diárias (${pluralDays(days)})` : `${pluralDays(days)} de ${formatBRL(dailyRate)}`}
+        </span>
+        {valid && (
+          <span className="text-xl font-bold">
+            <span className="tabular font-black text-electric">{formatBRL(current ? current.rental : dailyRate * days)}</span>
+          </span>
+        )}
       </div>
+      {valid && <p className="mt-1 text-xs text-muted-foreground">Proteção e opcionais você escolhe na próxima etapa.</p>}
 
       {available ? (
         valid ? (
