@@ -1,3 +1,4 @@
+import { todayIso } from '@/lib/rental'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format, parseISO } from 'date-fns'
@@ -44,7 +45,7 @@ export function exportBookingsToPDF(bookings: any[], title: string) {
     )
   }
   
-  doc.save(`${title.toLowerCase().replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+  doc.save(`${title.toLowerCase().replace(/ /g, '_')}_${todayIso()}.pdf`)
 }
 
 export function exportFinancialReportToPDF(data: any) {
@@ -96,5 +97,5 @@ export function exportFinancialReportToPDF(data: any) {
     })
   }
   
-  doc.save(`relatorio_financeiro_${new Date().toISOString().split('T')[0]}.pdf`)
+  doc.save(`relatorio_financeiro_${todayIso()}.pdf`)
 }

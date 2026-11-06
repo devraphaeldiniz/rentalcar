@@ -1,10 +1,12 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { pickupStarted } from '@/lib/rental'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { refundsApi } from '@/lib/payments/mercadopago'
+import { changeBookingStatus } from '@/lib/booking-status'
 
 // O cliente cancela a própria reserva enquanto ela ainda não começou.
 export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -24,8 +26,8 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!['pending', 'confirmed'].includes(b.status)) {
       return NextResponse.json({ error: 'Esta reserva não pode mais ser cancelada.' }, { status: 409 })
     }
-    const today = new Date().toISOString().slice(0, 10)
-    if (b.start_date <= today) {
+    // Calendário de Brasília: em UTC, depois das 21h a retirada de amanhã já parecia ser hoje.
+    if (pickupStarted(b.start_date)) {
       return NextResponse.json({ error: 'A retirada já começou. Fale com o atendimento para cancelar.' }, { status: 409 })
     }
 
@@ -41,10 +43,9 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       }
     }
 
-    await adminGraphql(
-      `mutation C($id: uuid!, $set: bookings_set_input!) { update_bookings_by_pk(pk_columns: { id: $id }, _set: $set) { id } }`,
-      { id: params.id, set: refunded ? { status: 'cancelled', payment_status: 'refunded' } : { status: 'cancelled' } },
-    )
+    // Cancela só se ainda estiver pendente/confirmada e devolve o uso do cupom, se houver.
+    const { changed } = await changeBookingStatus(params.id, 'cancelled', ['pending', 'confirmed'], refunded ? { payment_status: 'refunded' } : {})
+    if (!changed) return NextResponse.json({ error: 'Esta reserva não pode mais ser cancelada.' }, { status: 409 })
     await createAuditLog({
       userId: auth.userId,
       action: 'booking.cancelled',

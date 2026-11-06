@@ -16,16 +16,20 @@ import {
   User,
   Mail,
   Phone,
+  IdCard,
   Car,
   Calendar,
   DollarSign,
   Clock
 } from 'lucide-react'
 import Link from 'next/link'
+import { useConfirm } from '@/components/admin/confirm-dialog'
+import { useToast } from '@/lib/contexts/toast-context'
 import Image from 'next/image'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatBRL } from '@/lib/rental'
+import { formatPhone, whatsappUrl } from '@/lib/phone'
 
 type BookingDetails = {
   id: string
@@ -45,6 +49,7 @@ type BookingDetails = {
     displayName?: string
     phoneNumber?: string
   }
+  profile?: { full_name: string | null; phone: string | null; cpf: string | null } | null
   vehicle: {
     id: string
     brand: string
@@ -57,6 +62,8 @@ type BookingDetails = {
 }
 
 export default function BookingDetailsPage() {
+  const { confirm, dialog } = useConfirm()
+  const { showToast } = useToast()
   const params = useParams()
   const bookingId = params.id as string
   const router = useRouter()
@@ -89,7 +96,14 @@ export default function BookingDetailsPage() {
   }
 
   const handleUpdateStatus = async (newStatus: string) => {
-    if (!confirm(`Deseja realmente ${newStatus === 'confirmed' ? 'aprovar' : newStatus === 'cancelled' ? 'cancelar' : 'concluir'} esta reserva?`)) return
+    const label = newStatus === 'confirmed' ? 'Aprovar' : newStatus === 'cancelled' ? 'Cancelar' : 'Concluir'
+    const ok = await confirm({
+      title: `${label} esta reserva?`,
+      description: newStatus === 'cancelled' ? 'O carro volta a ficar livre no período e o uso do cupom, se houver, é devolvido.' : undefined,
+      confirmLabel: newStatus === 'cancelled' ? 'Cancelar reserva' : label,
+      destructive: newStatus === 'cancelled',
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/admin/bookings/${bookingId}`, {
@@ -99,7 +113,11 @@ export default function BookingDetailsPage() {
       })
 
       if (response.ok) {
+        showToast('Status da reserva atualizado.', 'success')
         fetchBooking()
+      } else {
+        const result = await response.json().catch(() => ({}))
+        showToast(result.error || 'Não foi possível atualizar a reserva.', 'error')
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
@@ -160,9 +178,12 @@ export default function BookingDetailsPage() {
   }
 
   const days = calculateDays()
+  const phone = booking.profile?.phone ?? booking.user.phoneNumber ?? null
+  const whatsapp = whatsappUrl(phone, `Olá! Aqui é da AstaCar, sobre a sua reserva do ${booking.vehicle.brand} ${booking.vehicle.model}.`)
 
   return (
     <div className="p-8">
+      {dialog}
       <div className="mb-8">
         <Link href="/admin/bookings">
           <Button variant="ghost" className="mb-4">
@@ -192,7 +213,7 @@ export default function BookingDetailsPage() {
             <div className="flex items-center gap-3">
               <User className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">{booking.user.displayName || 'Sem nome'}</p>
+                <p className="font-medium">{booking.profile?.full_name || booking.user.displayName || 'Sem nome'}</p>
                 <p className="text-sm text-muted-foreground">Nome completo</p>
               </div>
             </div>
@@ -208,10 +229,33 @@ export default function BookingDetailsPage() {
             <div className="flex items-center gap-3">
               <Phone className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">{booking.user.phoneNumber || 'Não informado'}</p>
+                {phone ? (
+                  <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <a href={`tel:+55${phone}`} className="hover:underline">{formatPhone(phone)}</a>
+                    {whatsapp && (
+                      <a href={whatsapp} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-600 hover:underline dark:text-emerald-400">
+                        WhatsApp
+                      </a>
+                    )}
+                  </p>
+                ) : (
+                  <p className="font-medium text-muted-foreground">Não informado no perfil</p>
+                )}
                 <p className="text-sm text-muted-foreground">Telefone</p>
               </div>
             </div>
+            {booking.profile?.cpf && (
+              <>
+                <Separator />
+                <div className="flex items-center gap-3">
+                  <IdCard className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{formatCpf(booking.profile.cpf)}</p>
+                    <p className="text-sm text-muted-foreground">CPF</p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -424,4 +468,9 @@ export default function BookingDetailsPage() {
       </Card>
     </div>
   )
+}
+
+function formatCpf(cpf: string) {
+  const d = cpf.replace(/\D/g, '')
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : cpf
 }

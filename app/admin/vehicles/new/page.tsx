@@ -18,8 +18,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Save, AlertTriangle, Upload, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useToast } from '@/lib/contexts/toast-context'
 
 export default function NewVehiclePage() {
+  const { showToast } = useToast()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -70,7 +72,7 @@ export default function NewVehiclePage() {
       if (!response.ok || result.error) {
         setError(result.error || 'Erro ao salvar veículo')
       } else {
-        alert('Veículo criado com sucesso!')
+        showToast('Veículo criado.', 'success')
         router.push('/admin/vehicles')
       }
     } catch (err: any) {
