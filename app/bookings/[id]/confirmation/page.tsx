@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
 import type { PriceLine } from '@/lib/pricing'
 import { BOOKING_STATUS, formatBRL, formatLongDate, pluralDays, rentalDays } from '@/lib/rental'
+import { bookingMessage, storeWhatsappLink } from '@/lib/whatsapp'
 
 type Booking = {
   id: string
@@ -38,6 +39,9 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
   if (!booking) notFound()
 
   const days = rentalDays(booking.start_date, booking.end_date)
+  const whatsapp = storeWhatsappLink(
+    bookingMessage(`ASTA-${booking.id.slice(0, 8).toUpperCase()}`, booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : undefined),
+  )
   const status = BOOKING_STATUS[booking.status]?.label ?? booking.status
   const image = booking.vehicle?.images?.[0] || booking.vehicle?.image_url
   const paid = booking.payment_status === 'paid'
@@ -103,7 +107,18 @@ export default async function BookingConfirmationPage(props: { params: Promise<{
         )}
       </section>
 
-      <p className="mt-6 text-sm text-muted-foreground">Na retirada, leve documento com foto e CNH válida.</p>
+      <p className="mt-6 text-sm text-muted-foreground">
+        Na retirada, leve documento com foto e CNH válida.
+        {whatsapp && (
+          <>
+            {' '}Alguma dúvida?{' '}
+            <a href={whatsapp} target="_blank" rel="noreferrer" className="font-semibold text-electric hover:underline">
+              Fale com a gente no WhatsApp
+            </a>
+            .
+          </>
+        )}
+      </p>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild variant="brand"><Link href="/profile/bookings">Ver minhas reservas</Link></Button>
