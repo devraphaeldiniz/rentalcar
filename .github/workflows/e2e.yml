@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: Endereço do site (ex.: https://rentalcar-eight.vercel.app)
+        description: 'Endereço do site, por exemplo https://rentalcar-eight.vercel.app'
         required: true
         default: https://rentalcar-eight.vercel.app
       booking:
-        description: Fazer uma reserva de verdade com a conta de demonstração (e cancelar no fim)
+        description: 'Fazer uma reserva de verdade com a conta de demonstração e cancelar no fim'
         type: boolean
         default: false
 
