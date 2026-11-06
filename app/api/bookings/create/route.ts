@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import { after, type NextRequest, NextResponse } from 'next/server'
-import { requireUser } from '@/lib/auth/authorization'
+import { adminGraphql, requireUser } from '@/lib/auth/authorization'
+import { demoBookingProblem, demoOnlinePayment, isDemoAccount } from '@/lib/demo'
+import { todayIso } from '@/lib/rental'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
@@ -32,8 +34,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { vehicle_id, start_date, end_date, protection, addons, coupon } = parsed.data
-    // Sem Mercado Pago configurado, toda reserva continua com pagamento na retirada.
-    const payment_method = parsed.data.payment_method === 'online' && onlinePaymentEnabled() ? 'online' : 'on_pickup'
     const start = new Date(`${start_date}T00:00:00Z`)
     const end = new Date(`${end_date}T00:00:00Z`)
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000)
@@ -45,6 +45,20 @@ export async function POST(req: NextRequest) {
     const auth = await requireUser()
     if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     const user_id = auth.userId
+
+    // Conta de demonstração (compartilhada): limites para não segurar a frota.
+    const demo = isDemoAccount(auth.email)
+    if (demo) {
+      const open = await adminGraphql<{ bookings_aggregate: { aggregate: { count: number } } }>(
+        `query Open($uid: uuid!) { bookings_aggregate(where: { user_id: { _eq: $uid }, status: { _in: ["pending", "confirmed"] } }) { aggregate { count } } }`,
+        { uid: user_id },
+      )
+      const problem = demoBookingProblem({ openBookings: open.bookings_aggregate.aggregate.count, days, startDate: start_date, today: todayIso() })
+      if (problem) return NextResponse.json({ error: problem }, { status: 409 })
+    }
+    // Sem Mercado Pago configurado, toda reserva continua com pagamento na retirada.
+    // Na demonstração, só paga online se DEMO_ONLINE_PAYMENT=on (credenciais de teste).
+    const payment_method = parsed.data.payment_method === 'online' && onlinePaymentEnabled() && (!demo || demoOnlinePayment()) ? 'online' : 'on_pickup'
 
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
     const headers = { 'Content-Type': 'application/json', 'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET! }
