@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label'
 import { Search, Shield, User, Edit, Loader2, Ban, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useConfirm } from '@/components/admin/confirm-dialog'
 
 type Profile = {
   id: string
@@ -39,6 +40,7 @@ type Profile = {
 }
 
 export default function UsersAdminPage() {
+  const { confirm, dialog } = useConfirm()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -71,9 +73,9 @@ export default function UsersAdminPage() {
   const [actionError, setActionError] = useState('')
 
   const busyRef = useRef(false)
-  const runAction = async (profile: Profile, url: string, body: object, confirmText: string) => {
+  const runAction = async (profile: Profile, url: string, body: object, confirmText: string, destructive = false) => {
     if (busyRef.current) return
-    if (!window.confirm(confirmText)) return
+    if (!(await confirm({ title: confirmText, confirmLabel: 'Confirmar', destructive }))) return
     busyRef.current = true
     setBusyId(profile.id)
     setActionError('')
@@ -97,7 +99,7 @@ export default function UsersAdminPage() {
     runAction(profile, '/api/admin/users/role', { userId: profile.id, role },
       role === 'admin'
         ? `Dar acesso de administrador para ${profile.email}?`
-        : `Remover o acesso de administrador de ${profile.email}?`)
+        : `Remover o acesso de administrador de ${profile.email}?`, role !== 'admin')
   }
 
   const toggleBlock = (profile: Profile) => {
@@ -105,7 +107,7 @@ export default function UsersAdminPage() {
     runAction(profile, '/api/admin/users/block', { userId: profile.id, block },
       block
         ? `Bloquear ${profile.email}? A pessoa não consegue mais entrar e as sessões abertas são encerradas.`
-        : `Desbloquear ${profile.email}?`)
+        : `Desbloquear ${profile.email}?`, block)
   }
 
   const handleEdit = (profile: Profile) => {
@@ -150,6 +152,7 @@ export default function UsersAdminPage() {
 
   return (
     <div className="p-8">
+      {dialog}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Usuários</h1>
         <p className="text-muted-foreground">Gerencie os perfis dos usuários</p>
