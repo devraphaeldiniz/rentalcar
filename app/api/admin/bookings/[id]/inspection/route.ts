@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { createAuditLog } from '@/lib/security/audit'
 import { extraTotal, INSPECTION_FLOW, type Inspection, inspectionDbError, inspectionInput } from '@/lib/inspections'
 
@@ -10,18 +11,19 @@ const FIELDS = 'id booking_id kind odometer_km fuel_eighths damages extra_charge
 const unauthorized = () => NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  if (!(await requireAdmin())) return unauthorized()
+  const viewer = await requireAdminView()
+  if (!viewer) return unauthorized()
   const { id } = await ctx.params
-  if (!z.string().uuid().safeParse(id).success) return NextResponse.json({ error: 'Reserva não encontrada' }, { status: 404 })
+  if (!z.string().uuid().safeParse(id).success) return viewerJson(viewer, { error: 'Reserva não encontrada' }, { status: 404 })
   try {
     const data = await adminGraphql<{ booking_inspections: Inspection[] }>(
       `query I($id: uuid!) { booking_inspections(where: { booking_id: { _eq: $id } }, order_by: { created_at: asc }) { ${FIELDS} } }`,
       { id },
     )
-    return NextResponse.json({ inspections: data.booking_inspections })
+    return viewerJson(viewer, { inspections: data.booking_inspections })
   } catch (error) {
     console.error('[admin/inspection GET]', error)
-    return NextResponse.json({ error: 'Não foi possível carregar a vistoria. A migração 015 já foi aplicada?' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Não foi possível carregar a vistoria. A migração 015 já foi aplicada?' }, { status: 500 })
   }
 }
 
