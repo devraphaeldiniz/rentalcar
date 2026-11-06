@@ -103,6 +103,9 @@ export async function POST(req: NextRequest) {
       if (message.includes('bookings_no_overlap') || message.includes('exclusion')) {
         return NextResponse.json({ error: 'Este carro já está reservado em parte desse período. Escolha outras datas.' }, { status: 409 })
       }
+      if (message.includes('vehicle_blocked')) {
+        return NextResponse.json({ error: 'Este carro está em manutenção em parte desse período. Escolha outras datas ou outro carro.' }, { status: 409 })
+      }
       return NextResponse.json({ error: 'Não foi possível criar a reserva' }, { status: 500 })
     }
     const booking = result.data?.insert_bookings_one

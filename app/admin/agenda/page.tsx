@@ -1,3 +1,6 @@
+import { VehicleBlocksManager } from '@/components/admin/vehicle-blocks'
+import { BLOCK_REASONS, type VehicleBlock, overlaps } from '@/lib/vehicle-blocks'
+import { Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Clock } from 'lucide-react'
@@ -44,6 +47,20 @@ export default async function AgendaPage() {
   if (!data) {
     return <div className="p-6 lg:p-8"><h1 className="text-3xl font-bold">Agenda</h1><p className="mt-4 text-muted-foreground">Não foi possível carregar a agenda agora.</p></div>
   }
+
+  // Bloqueios de manutenção na semana. Consulta à parte: sem a migração 014, a agenda continua funcionando.
+  const blocksData = await adminGraphql<{ vehicle_blocks: VehicleBlock[]; vehicles: { id: string; brand: string; model: string; plate: string | null }[] }>(
+    `query WeekBlocks($today: date!, $after: date!) {
+      vehicle_blocks(where: { start_date: { _lt: $after }, end_date: { _gt: $today } }, order_by: { start_date: asc }) { id vehicle_id start_date end_date reason notes created_at }
+      vehicles { id brand model plate }
+    }`,
+    { today, after: addDaysIso(today, DAYS) },
+  ).catch(() => ({ vehicle_blocks: [], vehicles: [] }))
+  const blockLabel = (b: VehicleBlock) => {
+    const v = blocksData.vehicles.find((x) => x.id === b.vehicle_id)
+    return v ? `${v.brand} ${v.model}${v.plate ? ` · ${v.plate}` : ''}` : 'Carro'
+  }
+  const blocksOn = (d: string) => blocksData.vehicle_blocks.filter((b) => overlaps(b.start_date, b.end_date, d, addDaysIso(d, 1)))
 
   const days = Array.from({ length: DAYS }, (_, i) => addDaysIso(today, i))
   const dayLabel = (d: string) => (d === today ? 'Hoje' : d === addDaysIso(today, 1) ? 'Amanhã' : formatLongDate(d))
@@ -115,11 +132,24 @@ export default async function AgendaPage() {
         {days.map((d) => {
           const pickups = data.pickups.filter((r) => r.start_date === d)
           const returns = data.returns.filter((r) => r.end_date === d)
+          const blocked = blocksOn(d)
           return (
             <section key={d} className={`rounded-2xl border bg-card p-5 ${d === today ? 'border-electric/50' : ''}`}>
               <h2 className="font-bold">{dayLabel(d)}</h2>
+              {blocked.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {blocked.map((b) => (
+                    <li key={b.id} className="flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5 text-xs">
+                      <Wrench className="h-3.5 w-3.5 shrink-0 text-warning" aria-label="Bloqueado" />
+                      <span className="min-w-0 truncate">
+                        <span className="font-semibold">{blockLabel(b)}</span> · {BLOCK_REASONS[b.reason] ?? b.reason}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {pickups.length + returns.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-foreground">Nada agendado.</p>
+                blocked.length === 0 && <p className="mt-2 text-sm text-muted-foreground">Nada agendado.</p>
               ) : (
                 <ul className="mt-3 space-y-2">
                   {pickups.map((r) => item(r, 'pickup'))}
@@ -130,6 +160,8 @@ export default async function AgendaPage() {
           )
         })}
       </div>
+
+      <VehicleBlocksManager />
     </div>
   )
 }
