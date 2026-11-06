@@ -13,6 +13,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         bookings_by_pk(id: $id) {
           id start_date end_date total_amount status payment_status payment_method mp_payment_id paid_at created_at price_lines coupon_code terms_accepted_at
           user { id email displayName phoneNumber }
+          profile { full_name phone cpf }
           vehicle { id brand model year plate daily_rate images }
         }
       }`,
