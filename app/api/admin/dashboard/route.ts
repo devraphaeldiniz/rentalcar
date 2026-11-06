@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 export async function GET() {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
@@ -53,7 +55,7 @@ export async function GET() {
 
     if (result.errors) {
       console.error('GraphQL errors:', result.errors)
-      return NextResponse.json(
+      return viewerJson(viewer, 
         { error: result.errors[0].message },
         { status: 500 }
       )
@@ -69,10 +71,10 @@ export async function GET() {
       activeVehicles: data.available_vehicles.aggregate.count || 0,
     }
 
-    return NextResponse.json({ stats })
+    return viewerJson(viewer, { stats })
   } catch (error) {
     console.error('Dashboard error:', error)
-    return NextResponse.json(
+    return viewerJson(viewer, 
       { error: 'Erro ao buscar estatísticas' },
       { status: 500 }
     )

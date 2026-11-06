@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 export async function GET(req: NextRequest) {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const searchParams = req.nextUrl.searchParams
     const startDate = searchParams.get('startDate')
@@ -61,11 +63,11 @@ export async function GET(req: NextRequest) {
     const result = await response.json()
 
     if (result.errors) {
-      return NextResponse.json({ error: result.errors[0].message }, { status: 500 })
+      return viewerJson(viewer, { error: result.errors[0].message }, { status: 500 })
     }
 
-    return NextResponse.json({ bookings: result.data?.bookings || [] })
+    return viewerJson(viewer, { bookings: result.data?.bookings || [] })
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao gerar relatório' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao gerar relatório' }, { status: 500 })
   }
 }

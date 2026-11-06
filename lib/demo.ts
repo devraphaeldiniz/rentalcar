@@ -10,6 +10,14 @@ export const demoCredentials = () => ({ email: DEMO_EMAIL, password: DEMO_PASSWO
 /** A conta de demonstração é compartilhada: dados e senha não podem ser trocados. */
 export const isDemoAccount = (email: string | null | undefined) => Boolean(DEMO_EMAIL && email?.trim().toLowerCase() === DEMO_EMAIL)
 
+// Conta de demonstração do painel: papel "client" no banco, só leitura e dados pessoais mascarados.
+export const DEMO_ADMIN_EMAIL = (process.env.DEMO_ADMIN_EMAIL ?? '').trim().toLowerCase()
+const DEMO_ADMIN_PASSWORD = process.env.DEMO_ADMIN_PASSWORD ?? ''
+export const demoAdminEnabled = () => Boolean(DEMO_ADMIN_EMAIL && DEMO_ADMIN_PASSWORD)
+export const demoAdminCredentials = () => ({ email: DEMO_ADMIN_EMAIL, password: DEMO_ADMIN_PASSWORD })
+export const isDemoAdminAccount = (email: string | null | undefined) =>
+  Boolean(DEMO_ADMIN_EMAIL && email?.trim().toLowerCase() === DEMO_ADMIN_EMAIL)
+
 export const DEMO_LOCKED_MESSAGE = 'Na conta de demonstração os dados e a senha não podem ser alterados. Crie sua conta para testar isso.'
 
 /**
