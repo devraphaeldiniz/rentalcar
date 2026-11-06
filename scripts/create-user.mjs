@@ -51,7 +51,7 @@ async function gql(query, variables) {
 }
 
 // 20 caracteres aleatórios; letras, números e símbolos simples.
-const password = randomBytes(15).toString('base64').replace(/\+/g, '-').replace(/\//g, '_') + '!'
+const password = `${randomBytes(15).toString('base64').replace(/\+/g, '-').replace(/\//g, '_')}!`
 
 try {
   const res = await fetch(`${AUTH}/signup/email-password`, {
@@ -82,7 +82,7 @@ try {
   }
 
   const out = join(root, '.env.contas-teste.local')
-  if (!existsSync(out)) appendFileSync(out, '# Contas de teste do RentalCar. Arquivo local, ignorado pelo Git.\n')
+  if (!existsSync(out)) appendFileSync(out, '# Contas de teste da AstaCar. Arquivo local, ignorado pelo Git.\n')
   appendFileSync(out, `\n# ${new Date().toISOString().slice(0, 16)} ${makeAdmin ? 'admin' : 'cliente'}\n${email}\n${password}\n`)
 
   console.log(`\n✔ Conta ${makeAdmin ? 'de administrador ' : ''}criada: ${email}`)

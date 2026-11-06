@@ -6,6 +6,7 @@ type Call = { query: string; variables: Record<string, unknown> }
 /** Simula o Hasura: a primeira mutation é a troca de status; as seguintes, o cupom. */
 function mockHasura(returning: { id: string; coupon_code: string | null }[]) {
   const calls: Call[] = []
+  vi.stubEnv('NHOST_ADMIN_SECRET', 'segredo-de-teste')
   vi.stubGlobal(
     'fetch',
     vi.fn(async (_url: string, init: { body: string }) => {
@@ -20,7 +21,10 @@ function mockHasura(returning: { id: string; coupon_code: string | null }[]) {
   return calls
 }
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
 
 describe('changeBookingStatus', () => {
   it('ao cancelar, devolve o uso do cupom', async () => {

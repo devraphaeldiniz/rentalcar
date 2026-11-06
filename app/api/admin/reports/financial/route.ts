@@ -1,116 +1,46 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdminView } from '@/lib/auth/authorization'
 import { viewerJson } from '@/lib/auth/admin-view'
+import { periodWhere, revenueByVehicle } from '@/lib/reports/where'
+
+type Financial = {
+  totals: { aggregate: { count: number; sum: { total_amount: number | string | null }; avg: { total_amount: number | string | null } } }
+  confirmed: { aggregate: { count: number } }
+  bookings: { total_amount: number | string; vehicle: { id: string; brand: string; model: string } | null }[]
+}
 
 export async function GET(req: NextRequest) {
   const viewer = await requireAdminView()
   if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const startDate = req.nextUrl.searchParams.get('startDate')
+  const endDate = req.nextUrl.searchParams.get('endDate')
+  const period = periodWhere(startDate, endDate)
+  // Receita não conta reservas canceladas.
+  const where = { ...period, status: { _neq: 'cancelled' } }
   try {
-    const searchParams = req.nextUrl.searchParams
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
-
-
-    // Receita não conta reservas canceladas.
-    let whereClause: Record<string, unknown> = { status: { _neq: 'cancelled' } }
-
-    if (startDate && endDate) {
-      whereClause = {
-        ...whereClause,
-        start_date: { _gte: startDate },
-        end_date: { _lte: endDate }
-      }
-    }
-
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
-      },
-      body: JSON.stringify({
-        query: `
-          query GetFinancialReport($where: bookings_bool_exp) {
-            bookings_aggregate(where: $where) {
-              aggregate {
-                count
-                sum {
-                  total_amount
-                }
-                avg {
-                  total_amount
-                }
-              }
-            }
-            confirmed: bookings_aggregate(where: { _and: [{ status: { _eq: "confirmed" } }] }) {
-              aggregate {
-                count
-              }
-            }
-            bookings(where: $where) {
-              total_amount
-              vehicle {
-                id
-                brand
-                model
-              }
-            }
-          }
-        `,
-        variables: { where: whereClause }
-      }),
-    })
-
-    const result = await response.json()
-
-    if (result.errors) {
-      console.error('GraphQL errors:', result.errors)
-      return viewerJson(viewer, { error: result.errors[0].message }, { status: 500 })
-    }
-
-    const data = result.data
-    const totalBookings = data.bookings_aggregate.aggregate.count || 0
-    const totalRevenue = data.bookings_aggregate.aggregate.sum.total_amount || 0
-    const averageTicket = data.bookings_aggregate.aggregate.avg.total_amount || 0
-    const confirmedBookings = data.confirmed.aggregate.count || 0
-    const confirmationRate = totalBookings > 0 ? ((confirmedBookings / totalBookings) * 100).toFixed(1) : 0
-
-    const vehicleMap = new Map()
-    data.bookings.forEach((booking: any) => {
-      const key = booking.vehicle.id
-      if (!vehicleMap.has(key)) {
-        vehicleMap.set(key, {
-          brand: booking.vehicle.brand,
-          model: booking.vehicle.model,
-          bookings: 0,
-          revenue: 0
-        })
-      }
-      const vehicle = vehicleMap.get(key)
-      vehicle.bookings++
-      vehicle.revenue += booking.total_amount
-    })
-
-    const vehiclePerformance = Array.from(vehicleMap.values())
-      .sort((a, b) => b.revenue - a.revenue)
-
-    const financialData = {
-      totalRevenue,
+    const data = await adminGraphql<Financial>(
+      `query GetFinancialReport($where: bookings_bool_exp!, $confirmed: bookings_bool_exp!) {
+        totals: bookings_aggregate(where: $where) { aggregate { count sum { total_amount } avg { total_amount } } }
+        confirmed: bookings_aggregate(where: $confirmed) { aggregate { count } }
+        bookings(where: $where) { total_amount vehicle { id brand model } }
+      }`,
+      // A taxa de confirmação usa o mesmo período (antes contava todas as reservas da história).
+      { where, confirmed: { ...period, status: { _eq: 'confirmed' } } },
+    )
+    const totalBookings = data.totals.aggregate.count
+    const confirmedBookings = data.confirmed.aggregate.count
+    return viewerJson(viewer, {
+      totalRevenue: Number(data.totals.aggregate.sum.total_amount ?? 0),
       totalBookings,
-      averageTicket,
+      averageTicket: Number(data.totals.aggregate.avg.total_amount ?? 0),
       confirmedBookings,
-      confirmationRate,
-      vehiclePerformance,
-      period: startDate && endDate ? `${startDate} a ${endDate}` : 'Todos os períodos'
-    }
-
-
-    return viewerJson(viewer, financialData)
-  } catch (error: any) {
-    console.error('Error in financial report:', error)
-    return viewerJson(viewer, { error: error.message || 'Erro ao gerar relatório financeiro' }, { status: 500 })
+      confirmationRate: totalBookings > 0 ? ((confirmedBookings / totalBookings) * 100).toFixed(1) : 0,
+      vehiclePerformance: revenueByVehicle(data.bookings),
+      period: Object.keys(period).length ? `${startDate} a ${endDate}` : 'Todos os períodos',
+    })
+  } catch (error) {
+    console.error('[admin/reports/financial]', error)
+    return viewerJson(viewer, { error: 'Erro ao gerar relatório financeiro' }, { status: 500 })
   }
 }

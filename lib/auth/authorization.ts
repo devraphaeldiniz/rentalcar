@@ -103,12 +103,14 @@ export async function requireUser(): Promise<AuthUser | null> {
   return { userId: user.id, email: user.email ?? null, token: session.accessToken, user }
 }
 
-export async function adminGraphql<T = any>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
+export async function adminGraphql<T = unknown>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
+  const secret = process.env.NHOST_ADMIN_SECRET
+  if (!secret) throw new Error('NHOST_ADMIN_SECRET não configurado')
   const response = await fetch(graphqlUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
+      'x-hasura-admin-secret': secret,
     },
     body: JSON.stringify({ query, variables }),
     cache: 'no-store',

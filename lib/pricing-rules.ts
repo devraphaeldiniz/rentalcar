@@ -69,7 +69,7 @@ export const normalizeCoupon = (code: string) => code.trim().toUpperCase().repla
 export class CouponError extends Error {}
 
 export function couponDiscount(coupon: Coupon | null | undefined, { days, today }: { days: number; today: string }): Discount {
-  if (!coupon || !coupon.active) throw new CouponError('Cupom não encontrado ou inativo.')
+  if (!coupon?.active) throw new CouponError('Cupom não encontrado ou inativo.')
   if (coupon.valid_from && today < coupon.valid_from) throw new CouponError('Este cupom ainda não está valendo.')
   if (coupon.valid_until && today > coupon.valid_until) throw new CouponError('Este cupom expirou.')
   if (coupon.max_uses != null && coupon.uses >= coupon.max_uses) throw new CouponError('Este cupom já atingiu o limite de usos.')

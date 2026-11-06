@@ -13,11 +13,9 @@ export async function middleware(request: NextRequest) {
 
   // Rotas protegidas
   const protectedRoutes = ['/profile', '/admin', '/bookings']
-  const adminRoutes = ['/admin']
 
   // Verificar se é rota protegida
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-  const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route))
 
   if (isProtectedRoute) {
     // Verificar se tem tokens nos cookies
@@ -30,8 +28,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // TODO: Verificar se é admin quando for rota admin
-    // Por enquanto, apenas verifica se está autenticado
+    // Só confere se há sessão; o papel de admin é verificado no servidor (layout do /admin e requireAdmin nas APIs).
   }
 
   return NextResponse.next()

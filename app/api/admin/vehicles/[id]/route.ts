@@ -1,17 +1,24 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { z } from 'zod'
+import { adminGraphql, requireAdmin, requireAdminView } from '@/lib/auth/authorization'
 import { viewerJson } from '@/lib/auth/admin-view'
-import { EDITABLE_VEHICLE_FIELDS as EDITABLE, pickVehicleFields } from '@/lib/vehicle-fields'
+import { EDITABLE_VEHICLE_FIELDS as EDITABLE } from '@/lib/vehicle-fields'
+import { createAuditLog } from '@/lib/security/audit'
+import { updateVehicleResponse } from '@/lib/vehicles-server'
+
+const notFound = () => NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 })
+const validId = (id: string) => z.string().uuid().safeParse(id).success
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const params = await ctx.params
+  const { id } = await ctx.params
   const viewer = await requireAdminView()
   if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  if (!validId(id)) return notFound()
   try {
     const data = await adminGraphql<{ vehicles_by_pk: unknown }>(
       `query AdminVehicle($id: uuid!) { vehicles_by_pk(id: $id) { id ${EDITABLE.join(' ')} image_credits } }`,
-      { id: params.id },
+      { id },
     )
     if (!data.vehicles_by_pk) return viewerJson(viewer, { error: 'Veículo não encontrado' }, { status: 404 })
     return viewerJson(viewer, { vehicle: data.vehicles_by_pk })
@@ -21,107 +28,34 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
-  try {
-    const body = await req.json()
-    const { id: vehicleId } = await params
-    const data = pickVehicleFields(body)
-    if (data.daily_rate !== undefined && !(Number(data.daily_rate) > 0)) {
-      return NextResponse.json({ error: 'A diária precisa ser maior que zero.' }, { status: 400 })
-    }
-
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
-      },
-      body: JSON.stringify({
-        query: `
-          mutation UpdateVehicle($id: uuid!, $_set: vehicles_set_input!) {
-            update_vehicles_by_pk(
-              pk_columns: { id: $id }
-              _set: $_set
-            ) {
-              id
-            }
-          }
-        `,
-        variables: { id: vehicleId, _set: data }
-      }),
-    })
-
-    const result = await response.json()
-
-    if (result.errors) {
-      return NextResponse.json(
-        { error: result.errors[0].message },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Erro ao atualizar veículo' },
-      { status: 500 }
-    )
-  }
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const { id } = await ctx.params
+  if (!validId(id)) return notFound()
+  return updateVehicleResponse(id, await req.json().catch(() => null), admin.userId)
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const { id } = await ctx.params
+  if (!validId(id)) return notFound()
   try {
-    const { id: vehicleId } = await params
-
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
-      },
-      body: JSON.stringify({
-        query: `
-          mutation DeleteVehicle($id: uuid!) {
-            delete_vehicles_by_pk(id: $id) {
-              id
-            }
-          }
-        `,
-        variables: { id: vehicleId }
-      }),
-    })
-
-    const result = await response.json()
-
-    if (result.errors) {
-      // bookings.vehicle_id é ON DELETE RESTRICT: carro com reservas não sai do banco.
-      const message = JSON.stringify(result.errors)
-      if (message.includes('foreign key') || message.includes('constraint-violation')) {
-        return NextResponse.json(
-          { error: 'Este carro tem reservas no histórico e não pode ser excluído. Marque-o como indisponível.' },
-          { status: 409 }
-        )
-      }
-      return NextResponse.json({ error: 'Não foi possível excluir o veículo.' }, { status: 500 })
-    }
-
+    const data = await adminGraphql<{ delete_vehicles_by_pk: { id: string } | null }>(
+      'mutation DeleteVehicle($id: uuid!) { delete_vehicles_by_pk(id: $id) { id } }',
+      { id },
+    )
+    if (!data.delete_vehicles_by_pk) return notFound()
+    await createAuditLog({ userId: admin.userId, action: 'vehicle.deleted', resource: 'vehicle', resourceId: id })
     return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Erro ao deletar veículo' },
-      { status: 500 }
-    )
+    // bookings.vehicle_id é ON DELETE RESTRICT: carro com reservas não sai do banco.
+    const message = String((error as Error)?.message ?? error)
+    if (message.includes('foreign key') || message.includes('constraint')) {
+      return NextResponse.json({ error: 'Este carro tem reservas no histórico e não pode ser excluído. Marque-o como indisponível.' }, { status: 409 })
+    }
+    console.error('[admin/vehicles/:id DELETE]', error)
+    return NextResponse.json({ error: 'Não foi possível excluir o veículo.' }, { status: 500 })
   }
 }

@@ -13,13 +13,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Download, FileText, FileSpreadsheet, Loader2, TrendingUp, DollarSign, Calendar } from 'lucide-react'
+import { FileText, FileSpreadsheet, Loader2, TrendingUp, DollarSign, Calendar } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { exportToCSV } from '@/lib/reports/csv-export'
 import { exportBookingsToPDF, exportFinancialReportToPDF } from '@/lib/reports/pdf-export'
-import { formatBRL } from '@/lib/rental'
+import { BOOKING_STATUS, formatBRL } from '@/lib/rental'
+import type { FinancialReport, ReportBooking } from '@/lib/reports/types'
+
+type ChartData = {
+  revenue: { day: string; revenue: number }[]
+  status: { name: string; value: number }[]
+  vehicles: { name: string; reservas: number; receita: number }[]
+}
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -29,9 +35,9 @@ export default function ReportsPage() {
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
   const [statusFilter, setStatusFilter] = useState('all')
-  const [bookingsData, setBookingsData] = useState<any[]>([])
-  const [financialData, setFinancialData] = useState<any>(null)
-  const [chartData, setChartData] = useState<any>({
+  const [bookingsData, setBookingsData] = useState<ReportBooking[]>([])
+  const [financialData, setFinancialData] = useState<FinancialReport | null>(null)
+  const [chartData, setChartData] = useState<ChartData>({
     revenue: [],
     status: [],
     vehicles: []
@@ -43,15 +49,15 @@ export default function ReportsPage() {
       const bookingsRes = await fetch(
         `/api/admin/reports/bookings?startDate=${startDate}&endDate=${endDate}&status=${statusFilter}`
       )
-      const bookings = await bookingsRes.json()
-      setBookingsData(bookings.bookings || [])
+      const bookings = (await bookingsRes.json()) as { bookings?: ReportBooking[] }
+      setBookingsData(bookings.bookings ?? [])
 
       const financialRes = await fetch(
         `/api/admin/reports/financial?startDate=${startDate}&endDate=${endDate}`
       )
-      const financial = await financialRes.json()
+      const financial = financialRes.ok ? ((await financialRes.json()) as FinancialReport) : null
       setFinancialData(financial)
-      processChartData(bookings.bookings, financial)
+      processChartData(bookings.bookings ?? [], financial)
     } catch (error) {
       console.error('Erro ao carregar relatórios:', error)
     } finally {
@@ -59,35 +65,29 @@ export default function ReportsPage() {
     }
   }
 
-  const processChartData = (bookings: any[], financial: any) => {
-    const revenueByDay = new Map()
-    bookings.forEach(booking => {
+  const processChartData = (bookings: ReportBooking[], financial: FinancialReport | null) => {
+    const revenueByDay = new Map<string, number>()
+    for (const booking of bookings) {
       const day = format(parseISO(booking.start_date), 'dd/MM')
-      if (!revenueByDay.has(day)) {
-        revenueByDay.set(day, 0)
-      }
-      revenueByDay.set(day, revenueByDay.get(day) + booking.total_amount)
-    })
+      // Number(): o Hasura pode devolver numeric como texto, e aí a soma concatenava.
+      revenueByDay.set(day, Math.round(((revenueByDay.get(day) ?? 0) + Number(booking.total_amount)) * 100) / 100)
+    }
 
     const revenueData = Array.from(revenueByDay.entries()).map(([day, revenue]) => ({
       day,
       revenue
     }))
 
-    const statusCount = new Map()
-    bookings.forEach(booking => {
-      const status = booking.status
-      statusCount.set(status, (statusCount.get(status) || 0) + 1)
-    })
+    const statusCount = new Map<string, number>()
+    for (const booking of bookings) statusCount.set(booking.status, (statusCount.get(booking.status) ?? 0) + 1)
 
+    // Antes, "em andamento" aparecia como "Concluída".
     const statusData = Array.from(statusCount.entries()).map(([name, value]) => ({
-      name: name === 'pending' ? 'Pendente' : 
-            name === 'confirmed' ? 'Confirmada' : 
-            name === 'cancelled' ? 'Cancelada' : 'Concluída',
+      name: BOOKING_STATUS[name]?.label ?? name,
       value
     }))
 
-    const vehicleData = financial?.vehiclePerformance?.slice(0, 5).map((v: any) => ({
+    const vehicleData = financial?.vehiclePerformance?.slice(0, 5).map((v) => ({
       name: `${v.brand} ${v.model}`,
       reservas: v.bookings,
       receita: v.revenue
@@ -122,6 +122,7 @@ export default function ReportsPage() {
   }
 
   const handleExportFinancialCSV = () => {
+    if (!financialData) return
     const csvData = [
       { 'Métrica': 'Receita Total', 'Valor': financialData.totalRevenue },
       { 'Métrica': 'Total de Reservas', 'Valor': financialData.totalBookings },
@@ -133,7 +134,7 @@ export default function ReportsPage() {
   }
 
   const handleExportFinancialPDF = () => {
-    exportFinancialReportToPDF(financialData)
+    if (financialData) exportFinancialReportToPDF(financialData)
   }
 
   return (
@@ -225,7 +226,7 @@ export default function ReportsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold">
-                        {formatBRL(Number(bookingsData.reduce((sum, b) => sum + b.total_amount, 0)))}
+                        {formatBRL(bookingsData.reduce((sum, b) => sum + Number(b.total_amount), 0))}
                       </div>
                       <p className="text-sm text-muted-foreground">Receita Total</p>
                     </CardContent>
@@ -305,7 +306,7 @@ export default function ReportsPage() {
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Desempenho por Veículo</h3>
                       <div className="space-y-2">
-                        {financialData.vehiclePerformance.map((vehicle: any, index: number) => (
+                        {financialData.vehiclePerformance.map((vehicle, index) => (
                           <div key={index} className="flex items-center justify-between p-3 border rounded">
                             <div>
                               <div className="font-medium">{vehicle.brand} {vehicle.model}</div>
@@ -339,7 +340,7 @@ export default function ReportsPage() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="day" />
                     <YAxis />
-                    <Tooltip formatter={(value: any) => formatBRL(Number(value))} />
+                    <Tooltip formatter={(value) => formatBRL(Number(value))} />
                     <Legend />
                     <Line type="monotone" dataKey="revenue" name="Receita" stroke="#3b82f6" strokeWidth={2} />
                   </LineChart>
@@ -365,7 +366,7 @@ export default function ReportsPage() {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {chartData.status.map((entry: any, index: number) => (
+                        {chartData.status.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
+import { Search, CheckCircle, XCircle, DollarSign } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatBRL } from '@/lib/rental'
@@ -87,7 +87,6 @@ export default function BookingsAdminPage() {
     if (!ok) return
 
     try {
-      console.log(`Updating booking ${bookingId} to ${newStatus}`)
       
       const response = await fetch(`/api/admin/bookings/${bookingId}`, {
         method: 'PATCH',
@@ -96,7 +95,6 @@ export default function BookingsAdminPage() {
       })
 
       const result = await response.json()
-      console.log('Update result:', result)
 
       if (response.ok) {
         showToast(`Reserva ${action === 'aprovar' ? 'aprovada' : 'cancelada'}.`, 'success')

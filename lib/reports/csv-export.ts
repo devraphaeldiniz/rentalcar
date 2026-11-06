@@ -5,7 +5,7 @@ import Papa from 'papaparse'
 const FORMULA = /^[=+\-@\t\r]/
 const neutralize = (value: unknown) => (typeof value === 'string' && FORMULA.test(value) ? `'${value}` : value)
 
-export function exportToCSV(data: any[], filename: string) {
+export function exportToCSV(data: Record<string, unknown>[], filename: string) {
   const safe = data.map((row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [k, neutralize(v)])))
   const csv = Papa.unparse(safe)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

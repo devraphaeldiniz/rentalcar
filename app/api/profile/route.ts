@@ -1,9 +1,8 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
 import { DEMO_LOCKED_MESSAGE, isDemoAccount } from '@/lib/demo'
 import { requireUser, adminGraphql } from '@/lib/auth/authorization'
-import { isValidCpf } from '@/lib/rental'
+import { isDuplicateCpf, profileInput } from '@/lib/profile-input'
 
 type Profile = { full_name: string | null; phone: string | null; cpf: string | null; email: string; role: string; created_at: string }
 
@@ -22,20 +21,12 @@ export async function GET() {
   }
 }
 
-const onlyDigits = (v: string) => v.replace(/\D/g, '')
-
-const input = z.object({
-  fullName: z.string().trim().min(3, 'Informe o nome completo').max(120),
-  phone: z.string().trim().max(20).optional().transform((v) => (v ? onlyDigits(v) : '')).refine((v) => v === '' || (v.length >= 10 && v.length <= 13), 'Telefone com DDD, só números'),
-  cpf: z.string().trim().optional().transform((v) => (v ? onlyDigits(v) : '')).refine((v) => v === '' || isValidCpf(v), 'CPF inválido. Confira os números.'),
-})
-
 export async function PATCH(req: NextRequest) {
   const auth = await requireUser()
   if (!auth) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (isDemoAccount(auth.email)) return NextResponse.json({ error: DEMO_LOCKED_MESSAGE }, { status: 403 })
 
-  const parsed = input.safeParse(await req.json().catch(() => null))
+  const parsed = profileInput.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }, { status: 400 })
   }
@@ -51,8 +42,7 @@ export async function PATCH(req: NextRequest) {
     )
     return NextResponse.json({ success: true })
   } catch (error) {
-    const message = String((error as Error).message)
-    if (message.includes('profiles_cpf_key')) {
+    if (isDuplicateCpf(error)) {
       return NextResponse.json({ error: 'Este CPF já está cadastrado em outra conta.' }, { status: 409 })
     }
     console.error('[profile PATCH]', error)

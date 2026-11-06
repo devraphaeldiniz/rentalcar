@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Star, Check, X } from 'lucide-react'
@@ -40,7 +40,7 @@ export default function AdminReviewsPage() {
       const response = await fetch('/api/admin/reviews')
       const data = await response.json()
       setReviews(data)
-    } catch (error) {
+    } catch {
       showToast('Erro ao carregar avaliações', 'error')
     } finally {
       setIsLoading(false)
@@ -59,13 +59,13 @@ export default function AdminReviewsPage() {
 
       showToast(`Avaliação ${status === 'approved' ? 'aprovada' : 'rejeitada'}!`, 'success')
       loadReviews()
-    } catch (error) {
+    } catch {
       showToast('Erro ao atualizar avaliação', 'error')
     }
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
+    const variants: Record<string, { variant: 'secondary' | 'default' | 'destructive'; text: string }> = {
       pending: { variant: 'secondary', text: 'Pendente' },
       approved: { variant: 'default', text: 'Aprovada' },
       rejected: { variant: 'destructive', text: 'Rejeitada' }

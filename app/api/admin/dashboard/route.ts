@@ -1,82 +1,40 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdminView } from '@/lib/auth/authorization'
 import { viewerJson } from '@/lib/auth/admin-view'
+
+type Count = { aggregate: { count: number } }
+type Dashboard = {
+  bookings_aggregate: { aggregate: { count: number; sum: { total_amount: number | string | null } } }
+  pending: Count
+  vehicles_aggregate: Count
+  available_vehicles: Count
+  profiles_aggregate: Count
+}
 
 export async function GET() {
   const viewer = await requireAdminView()
   if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET!,
-      },
-      body: JSON.stringify({
-        query: `
-          query GetDashboardStats {
-            bookings_aggregate(where: { status: { _neq: "cancelled" } }) {
-              aggregate {
-                count
-                sum {
-                  total_amount
-                }
-              }
-            }
-            pending: bookings_aggregate(where: { status: { _eq: "pending" } }) {
-              aggregate {
-                count
-              }
-            }
-            vehicles_aggregate {
-              aggregate {
-                count
-              }
-            }
-            available_vehicles: vehicles_aggregate(where: { status: { _eq: "available" } }) {
-              aggregate {
-                count
-              }
-            }
-            profiles_aggregate {
-              aggregate {
-                count
-              }
-            }
-          }
-        `
-      }),
-    })
-
-    const result = await response.json()
-
-    if (result.errors) {
-      console.error('GraphQL errors:', result.errors)
-      return viewerJson(viewer, 
-        { error: result.errors[0].message },
-        { status: 500 }
-      )
-    }
-
-    const data = result.data
+    const data = await adminGraphql<Dashboard>(`
+      query GetDashboardStats {
+        bookings_aggregate(where: { status: { _neq: "cancelled" } }) { aggregate { count sum { total_amount } } }
+        pending: bookings_aggregate(where: { status: { _eq: "pending" } }) { aggregate { count } }
+        vehicles_aggregate { aggregate { count } }
+        available_vehicles: vehicles_aggregate(where: { status: { _eq: "available" } }) { aggregate { count } }
+        profiles_aggregate { aggregate { count } }
+      }`)
     const stats = {
-      totalRevenue: data.bookings_aggregate.aggregate.sum.total_amount || 0,
-      totalBookings: data.bookings_aggregate.aggregate.count || 0,
-      totalVehicles: data.vehicles_aggregate.aggregate.count || 0,
-      totalUsers: data.profiles_aggregate.aggregate.count || 0,
-      pendingBookings: data.pending.aggregate.count || 0,
-      activeVehicles: data.available_vehicles.aggregate.count || 0,
+      totalRevenue: Number(data.bookings_aggregate.aggregate.sum.total_amount ?? 0),
+      totalBookings: data.bookings_aggregate.aggregate.count,
+      totalVehicles: data.vehicles_aggregate.aggregate.count,
+      totalUsers: data.profiles_aggregate.aggregate.count,
+      pendingBookings: data.pending.aggregate.count,
+      activeVehicles: data.available_vehicles.aggregate.count,
     }
-
     return viewerJson(viewer, { stats })
   } catch (error) {
-    console.error('Dashboard error:', error)
-    return viewerJson(viewer, 
-      { error: 'Erro ao buscar estatísticas' },
-      { status: 500 }
-    )
+    console.error('[admin/dashboard]', error)
+    return viewerJson(viewer, { error: 'Erro ao buscar estatísticas' }, { status: 500 })
   }
 }

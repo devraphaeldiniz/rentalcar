@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Plus, Search, Edit, Trash2, Car } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, } from 'lucide-react'
 import { CATEGORY_LABELS, CATEGORY_ORDER, formatBRL } from '@/lib/rental'
 import { useConfirm } from '@/components/admin/confirm-dialog'
 import { useToast } from '@/lib/contexts/toast-context'
@@ -217,7 +217,7 @@ export default function VehiclesAdminPage() {
                   <Input
                     type="number"
                     value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value, 10) })}
                     required
                   />
                 </div>

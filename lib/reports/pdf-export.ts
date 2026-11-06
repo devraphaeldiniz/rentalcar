@@ -1,10 +1,11 @@
-import { todayIso } from '@/lib/rental'
+import { BOOKING_STATUS, formatBRL, todayIso } from '@/lib/rental'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import type { FinancialReport, ReportBooking } from '@/lib/reports/types'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-export function exportBookingsToPDF(bookings: any[], title: string) {
+export function exportBookingsToPDF(bookings: ReportBooking[], title: string) {
   const doc = new jsPDF()
   
   // Header
@@ -17,11 +18,11 @@ export function exportBookingsToPDF(bookings: any[], title: string) {
   // Table
   const tableData = bookings.map(booking => [
     booking.user?.email || '-',
-    `${booking.vehicle?.brand} ${booking.vehicle?.model}`,
+    booking.vehicle ? `${booking.vehicle.brand} ${booking.vehicle.model}` : '-',
     format(parseISO(booking.start_date), 'dd/MM/yyyy', { locale: ptBR }),
     format(parseISO(booking.end_date), 'dd/MM/yyyy', { locale: ptBR }),
-    `R$ ${booking.total_amount.toLocaleString('pt-BR')}`,
-    booking.status,
+    formatBRL(Number(booking.total_amount)),
+    BOOKING_STATUS[booking.status]?.label ?? booking.status,
   ])
   
   autoTable(doc, {
@@ -33,7 +34,7 @@ export function exportBookingsToPDF(bookings: any[], title: string) {
   })
   
   // Footer
-  const pageCount = (doc as any).internal.getNumberOfPages()
+  const pageCount = doc.getNumberOfPages()
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFontSize(10)
@@ -48,7 +49,7 @@ export function exportBookingsToPDF(bookings: any[], title: string) {
   doc.save(`${title.toLowerCase().replace(/ /g, '_')}_${todayIso()}.pdf`)
 }
 
-export function exportFinancialReportToPDF(data: any) {
+export function exportFinancialReportToPDF(data: FinancialReport) {
   const doc = new jsPDF()
   
   doc.setFontSize(18)
@@ -63,9 +64,9 @@ export function exportFinancialReportToPDF(data: any) {
   doc.text('Resumo', 14, 50)
   
   const summaryData = [
-    ['Receita Total', `R$ ${data.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+    ['Receita Total', formatBRL(data.totalRevenue)],
     ['Total de Reservas', data.totalBookings],
-    ['Ticket Médio', `R$ ${data.averageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`],
+    ['Ticket Médio', formatBRL(data.averageTicket)],
     ['Reservas Confirmadas', data.confirmedBookings],
     ['Taxa de Confirmação', `${data.confirmationRate}%`],
   ]
@@ -83,10 +84,10 @@ export function exportFinancialReportToPDF(data: any) {
     doc.setFontSize(14)
     doc.text('Desempenho por Veículo', 14, 22)
     
-    const vehicleData = data.vehiclePerformance.map((v: any) => [
+    const vehicleData = data.vehiclePerformance.map((v) => [
       `${v.brand} ${v.model}`,
       v.bookings,
-      `R$ ${v.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      formatBRL(v.revenue),
     ])
     
     autoTable(doc, {

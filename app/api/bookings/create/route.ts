@@ -74,15 +74,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
-    const headers = { 'Content-Type': 'application/json', 'x-hasura-admin-secret': process.env.NHOST_ADMIN_SECRET! }
-    const vehicleResponse = await fetch(url, { method: 'POST', headers, body: JSON.stringify({
-      query: `query Vehicle($id: uuid!) { vehicles_by_pk(id: $id) { id daily_rate status } }`,
-      variables: { id: vehicle_id },
-    }) })
-    const vehicleResult = await vehicleResponse.json()
-    const vehicle = vehicleResult.data?.vehicles_by_pk
-    if (!vehicle || vehicle.status !== 'available') return NextResponse.json({ error: 'Veículo indisponível' }, { status: 409 })
+    const { vehicles_by_pk: vehicle } = await adminGraphql<{ vehicles_by_pk: { id: string; daily_rate: number | string; status: string } | null }>(
+      'query Vehicle($id: uuid!) { vehicles_by_pk(id: $id) { id daily_rate status } }',
+      { id: vehicle_id },
+    )
+    if (vehicle?.status !== 'available') return NextResponse.json({ error: 'Veículo indisponível' }, { status: 409 })
 
     // O valor é sempre recalculado aqui, com os preços atuais do banco.
     let priced: Awaited<ReturnType<typeof quoteReservation>>
@@ -100,34 +96,39 @@ export async function POST(req: NextRequest) {
     if (priced.coupon && !(await claimCoupon(priced.coupon))) {
       return NextResponse.json({ error: 'Este cupom acabou de atingir o limite de usos.' }, { status: 409 })
     }
-    const bookingResponse = await fetch(url, { method: 'POST', headers, body: JSON.stringify({
-      query: `mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount payment_method } }`,
-      variables: { object: {
-        user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending', payment_method,
-        base_amount: quote.base, extras_amount: quote.extras, discount_amount: quote.discount,
-        price_lines: quote.lines, terms_accepted_at: new Date().toISOString(), coupon_code: priced.coupon,
-        customer_email: auth.email, customer_name: auth.user.displayName ?? null,
-      } },
-    }) })
-    const result = await bookingResponse.json()
-    if (!bookingResponse.ok || result.errors) {
+    type Created = { id: string; status: string; start_date: string; end_date: string; total_amount: number; payment_method: string }
+    let booking: Created
+    try {
+      const created = await adminGraphql<{ insert_bookings_one: Created }>(
+        'mutation CreateBooking($object: bookings_insert_input!) { insert_bookings_one(object: $object) { id status start_date end_date total_amount payment_method } }',
+        {
+          object: {
+            user_id, vehicle_id, start_date, end_date, total_amount, status: 'pending', payment_method,
+            base_amount: quote.base, extras_amount: quote.extras, discount_amount: quote.discount,
+            price_lines: quote.lines, terms_accepted_at: new Date().toISOString(), coupon_code: priced.coupon,
+            customer_email: auth.email, customer_name: auth.user.displayName ?? null,
+          },
+        },
+      )
+      booking = created.insert_bookings_one
+    } catch (error) {
       if (priced.coupon) await releaseCoupon(priced.coupon)
       // A trava bookings_no_overlap do banco impede duas reservas no mesmo período.
-      const message = JSON.stringify(result.errors ?? '')
+      const message = String((error as Error)?.message ?? error)
       if (message.includes('bookings_no_overlap') || message.includes('exclusion')) {
         return NextResponse.json({ error: 'Este carro já está reservado em parte desse período. Escolha outras datas.' }, { status: 409 })
       }
       if (message.includes('vehicle_blocked')) {
         return NextResponse.json({ error: 'Este carro está em manutenção em parte desse período. Escolha outras datas ou outro carro.' }, { status: 409 })
       }
+      console.error('[bookings/create]', error)
       return NextResponse.json({ error: 'Não foi possível criar a reserva' }, { status: 500 })
     }
-    const booking = result.data?.insert_bookings_one
     await createAuditLog({
       userId: user_id,
       action: 'booking.created',
       resource: 'booking',
-      resourceId: booking?.id,
+      resourceId: booking.id,
       ipAddress: await getClientIP(),
       userAgent: await getUserAgent(),
       metadata: { vehicle_id, start_date, end_date, total_amount, payment_method, protection: quote.protection, addons: quote.addons, coupon: priced.coupon },
@@ -147,9 +148,10 @@ export async function POST(req: NextRequest) {
       }).catch((error) => console.error('[track] booking_created', error))
     }
     // Pagamento na retirada: confirma por e-mail já. Online: o e-mail sai quando o pagamento for aprovado.
-    if (booking?.id && payment_method === 'on_pickup') after(() => sendBookingConfirmation(booking.id))
+    if (payment_method === 'on_pickup') after(() => sendBookingConfirmation(booking.id))
     return NextResponse.json({ success: true, booking })
-  } catch {
+  } catch (error) {
+    console.error('[bookings/create]', error)
     return NextResponse.json({ error: 'Erro ao processar reserva' }, { status: 500 })
   }
 }
