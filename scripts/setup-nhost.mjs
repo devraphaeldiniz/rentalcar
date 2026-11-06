@@ -94,6 +94,15 @@ async function migrate() {
 
 // ---------- 2. metadata do Hasura ----------
 const TABLES = ['profiles', 'vehicles', 'bookings', 'reviews', 'audit_logs', 'login_attempts', 'contact_messages', 'analytics_events', 'rental_extras', 'pricing_rules', 'coupons', 'banners', 'payments']
+// Tabelas novas se declaram na própria migração com uma linha "-- @track nome_da_tabela".
+// Assim cada funcionalidade traz a sua tabela sem todas disputarem a lista acima.
+function trackedFromMigrations() {
+  const dir = join(root, 'nhost', 'migrations')
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .flatMap((f) => [...readFileSync(join(dir, f), 'utf8').matchAll(/^--\s*@track\s+([a-z_][a-z0-9_]*)\s*$/gm)].map((m) => m[1]))
+}
 const AUTH_USERS = { schema: 'auth', name: 'users' }
 const t = (name) => ({ schema: 'public', name })
 
@@ -152,7 +161,9 @@ async function applyMetadata() {
   const ignoreMissing = { allowErrors: ['not-exists', 'not-found', 'does not exist', 'permission-denied'] }
 
   for (const name of TABLES) await metadata('pg_track_table', { table: t(name) }, ignoreExisting)
-  console.log(`  ✓ ${TABLES.length} tabelas rastreadas`)
+  const declared = trackedFromMigrations()
+  for (const name of declared) await metadata('pg_track_table', { table: t(name) }, ignoreExisting)
+  console.log(`  ✓ ${TABLES.length + declared.length} tabelas rastreadas`)
 
   for (const [table, name, using] of OBJECT_RELS) {
     await metadata('pg_drop_relationship', { table: t(table), relationship: name }, ignoreMissing)

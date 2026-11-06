@@ -24,6 +24,7 @@ import {
   rentalDays,
   todayIso,
 } from '@/lib/rental'
+import { CnhForm } from '@/components/client/cnh-form'
 
 // Pagamento online só aparece com a chave pública do Mercado Pago configurada.
 const ONLINE_PAYMENT = Boolean(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY)
@@ -62,11 +63,19 @@ export default function CheckoutPage() {
   const [protection, setProtection] = useState('')
   const [addons, setAddons] = useState<string[]>([])
   const [acceptTerms, setAcceptTerms] = useState(false)
+  // A CNH precisa servir para a data de retirada (o servidor confere de novo ao criar a reserva).
+  const [cnhReady, setCnhReady] = useState(false)
   const [payMethod, setPayMethod] = useState<'online' | 'on_pickup'>(ONLINE_PAYMENT ? 'online' : 'on_pickup')
   const [couponInput, setCouponInput] = useState(search.get('cupom') ?? '')
   const [coupon, setCoupon] = useState(search.get('cupom') ?? '')
   const [couponError, setCouponError] = useState('')
   const [serverQuote, setServerQuote] = useState<Quote | null>(null)
+  // Conta de demonstração: sem pagamento online (a não ser que o servidor permita) e com limites.
+  const demo = user?.demo ?? null
+  const onlineAllowed = ONLINE_PAYMENT && (!demo || demo.onlinePayment)
+  useEffect(() => {
+    if (!onlineAllowed) setPayMethod('on_pickup')
+  }, [onlineAllowed])
   const [quoting, setQuoting] = useState(false)
 
   useEffect(() => {
@@ -272,7 +281,18 @@ export default function CheckoutPage() {
             onToggleAddon={toggleAddon}
           />
 
-          {ONLINE_PAYMENT && (
+          {demo && (
+            <section className="rounded-2xl border border-electric/40 bg-electric/5 p-5 text-sm" aria-label="Conta de demonstração">
+              <h2 className="font-bold">Você está na conta de demonstração</h2>
+              <p className="mt-1 text-muted-foreground">
+                Ela é compartilhada por quem visita o projeto, então tem limites: até {demo.limits.openBookings} reservas abertas,
+                até {demo.limits.maxDays} diárias e retirada nos próximos {demo.limits.maxAdvanceDays} dias
+                {demo.onlinePayment ? '.' : '. O pagamento fica para a retirada, sem cobrança online.'}
+              </p>
+            </section>
+          )}
+
+          {onlineAllowed && (
             <fieldset className="rounded-2xl border bg-card p-5">
               <legend className="sr-only">Forma de pagamento</legend>
               <h2 className="text-lg font-bold">Como você quer pagar?</h2>
@@ -302,6 +322,12 @@ export default function CheckoutPage() {
               </div>
             </fieldset>
           )}
+
+          <section className="rounded-2xl border bg-card p-5" aria-labelledby="cnh-titulo">
+            <h2 id="cnh-titulo" className="text-lg font-bold">Sua CNH</h2>
+            <p className="mb-3 mt-1 text-sm text-muted-foreground">Conferimos antes de confirmar: válida na retirada e com pelo menos 2 anos de habilitação.</p>
+            <CnhForm pickupDate={validPeriod ? start : undefined} onReady={setCnhReady} />
+          </section>
 
           <section className="rounded-2xl border bg-card p-5">
             <h2 className="text-lg font-bold">Antes de confirmar</h2>
@@ -385,7 +411,8 @@ export default function CheckoutPage() {
 
           {error && <p role="alert" className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || !quote || submitting}>
+          {!cnhReady && <p className="mt-4 text-sm text-muted-foreground">Cadastre ou atualize sua CNH acima para confirmar.</p>}
+          <Button type="submit" variant="brand" size="lg" className="mt-5 w-full" disabled={!validPeriod || !quote || submitting || !cnhReady}>
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {submitting ? 'Confirmando...' : payMethod === 'online' ? 'Continuar para o pagamento' : 'Confirmar reserva'}
           </Button>

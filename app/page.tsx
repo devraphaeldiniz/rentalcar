@@ -49,9 +49,19 @@ async function getCatalog(range: DateRange | null) {
       withRange: Boolean(range),
     },
   )
+  // Carros bloqueados (manutenção, revisão) no período também aparecem como ocupados.
+  // Consulta separada: se a migração 014 ainda não foi aplicada, o catálogo continua funcionando.
+  const blocked = range
+    ? await adminGraphql<{ vehicle_blocks: { vehicle_id: string }[] }>(
+        `query Blocked($start: date!, $end: date!) {
+          vehicle_blocks(where: { start_date: { _lt: $end }, end_date: { _gt: $start } }) { vehicle_id }
+        }`,
+        { start: range.start, end: range.end },
+      ).catch(() => ({ vehicle_blocks: [] }))
+    : { vehicle_blocks: [] }
   return {
     vehicles: data.vehicles ?? [],
-    busy: new Set((data.bookings ?? []).map((b) => b.vehicle_id)),
+    busy: new Set([...(data.bookings ?? []), ...blocked.vehicle_blocks].map((b) => b.vehicle_id)),
   }
 }
 

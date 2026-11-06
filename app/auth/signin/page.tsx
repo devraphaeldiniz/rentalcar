@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AstaMark } from '@/components/brand/logo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, AlertCircle, Sparkles } from 'lucide-react'
+import { Loader2, AlertCircle, LayoutDashboard, Sparkles } from 'lucide-react'
 
 export default function SignInPage() {
   // Quem já está logado não precisa ver esta tela.
@@ -28,28 +28,40 @@ export default function SignInPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [demoEnabled, setDemoEnabled] = useState(false)
-  const [demoLoading, setDemoLoading] = useState(false)
+  const [demoAdminEnabled, setDemoAdminEnabled] = useState(false)
+  const [demoLoading, setDemoLoading] = useState<'client' | 'admin' | null>(null)
 
   useEffect(() => {
-    fetch('/api/auth/demo').then((r) => r.json()).then((d) => setDemoEnabled(Boolean(d.enabled))).catch(() => {})
+    fetch('/api/auth/demo')
+      .then((r) => r.json())
+      .then((d) => {
+        setDemoEnabled(Boolean(d.enabled))
+        setDemoAdminEnabled(Boolean(d.admin))
+      })
+      .catch(() => {})
   }, [])
 
-  // Entra na conta de demonstração (as credenciais ficam no servidor).
-  const enterDemo = async () => {
+  // Entra numa conta de demonstração (as credenciais ficam no servidor).
+  const enterDemo = async (as: 'client' | 'admin') => {
     setError('')
-    setDemoLoading(true)
+    setDemoLoading(as)
     try {
-      const response = await fetch('/api/auth/demo', { method: 'POST', credentials: 'include' })
+      const response = await fetch('/api/auth/demo', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ as }),
+      })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
         setError(data.error || 'Demonstração indisponível no momento.')
-        setDemoLoading(false)
+        setDemoLoading(null)
         return
       }
-      window.location.href = safeRedirect(new URLSearchParams(window.location.search).get('redirect'))
+      window.location.href = as === 'admin' ? '/admin' : safeRedirect(new URLSearchParams(window.location.search).get('redirect'))
     } catch {
       setError('Erro ao conectar ao servidor')
-      setDemoLoading(false)
+      setDemoLoading(null)
     }
   }
 
@@ -141,18 +153,33 @@ export default function SignInPage() {
             </Button>
           </form>
 
-          {demoEnabled && (
+          {(demoEnabled || demoAdminEnabled) && (
             <div className="mt-6">
               <div className="relative flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
                 <span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" />
               </div>
-              <Button type="button" variant="outline" size="lg" className="mt-4 w-full" onClick={enterDemo} disabled={demoLoading || isLoading}>
-                {demoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-electric" />}
-                Entrar como cliente de demonstração
-              </Button>
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                Sem cadastro: faça reservas, use cupons e cancele à vontade.
-              </p>
+              {demoEnabled && (
+                <>
+                  <Button type="button" variant="outline" size="lg" className="mt-4 w-full" onClick={() => enterDemo('client')} disabled={demoLoading !== null || isLoading}>
+                    {demoLoading === 'client' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-electric" />}
+                    Entrar como cliente de demonstração
+                  </Button>
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Sem cadastro: faça reservas, use cupons e cancele à vontade.
+                  </p>
+                </>
+              )}
+              {demoAdminEnabled && (
+                <>
+                  <Button type="button" variant="outline" size="lg" className="mt-4 w-full" onClick={() => enterDemo('admin')} disabled={demoLoading !== null || isLoading}>
+                    {demoLoading === 'admin' ? <Loader2 className="h-4 w-4 animate-spin" /> : <LayoutDashboard className="h-4 w-4 text-electric" />}
+                    Ver o painel do admin
+                  </Button>
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Só leitura: agenda, funil, preços e reservas, com os dados pessoais mascarados.
+                  </p>
+                </>
+              )}
             </div>
           )}
 

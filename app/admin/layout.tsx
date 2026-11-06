@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { requireUser, getUserRole } from '@/lib/auth/authorization'
+import { requireAdminView, requireUser } from '@/lib/auth/authorization'
 import { AdminShell } from '@/components/admin/admin-shell'
 
 export const metadata: Metadata = {
@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-// Barreira no servidor: só admins chegam a renderizar o painel.
+// Barreira no servidor: só admins (e a conta de demonstração do painel, só leitura) chegam a renderizar o painel.
 // Antes, um cliente que digitasse /admin via uma tela quebrada.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireUser()
-  if (!user) redirect('/auth/signin?redirect=%2Fadmin')
-  if ((await getUserRole(user.userId)) !== 'admin') redirect('/')
-  return <AdminShell>{children}</AdminShell>
+  if (!(await requireUser())) redirect('/auth/signin?redirect=%2Fadmin')
+  const viewer = await requireAdminView()
+  if (!viewer) redirect('/')
+  return <AdminShell demo={viewer.demo}>{children}</AdminShell>
 }

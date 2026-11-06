@@ -24,7 +24,21 @@ export async function GET() {
     )
     // Marca as reservas que já foram avaliadas, para esconder o botão "Avaliar".
     const reviewed = new Set((data.reviews ?? []).map((r) => r.booking_id))
-    const bookings = (data.bookings ?? []).map((b) => ({ ...b, reviews: reviewed.has(b.id) ? [{ id: b.id }] : [] }))
+    // Vistorias (retirada e devolução) das reservas. Consulta à parte: sem a migração 015, a lista continua.
+    const ids = (data.bookings ?? []).map((b) => b.id)
+    const insp = ids.length
+      ? await adminGraphql<{ booking_inspections: { booking_id: string }[] }>(
+          `query Insp($ids: [uuid!]!) {
+            booking_inspections(where: { booking_id: { _in: $ids } }) { booking_id kind odometer_km fuel_eighths damages extra_charges extra_total created_at }
+          }`,
+          { ids },
+        ).catch(() => ({ booking_inspections: [] }))
+      : { booking_inspections: [] }
+    const bookings = (data.bookings ?? []).map((b) => ({
+      ...b,
+      reviews: reviewed.has(b.id) ? [{ id: b.id }] : [],
+      inspections: insp.booking_inspections.filter((i) => i.booking_id === b.id),
+    }))
     return NextResponse.json({ bookings })
   } catch (error) {
     console.error('[bookings/my]', error)
