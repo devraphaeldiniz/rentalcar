@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react'
+import { Mail, Phone, MapPin, Clock, MessageCircle, Send } from 'lucide-react'
+import { storeWhatsappLink } from '@/lib/whatsapp'
 
 export default function ContatoPage() {
   const [formData, setFormData] = useState({
@@ -47,7 +48,9 @@ export default function ContatoPage() {
     }
   }
 
+  const whatsapp = storeWhatsappLink('Olá! Vim pelo site da AstaCar e tenho uma dúvida.')
   const contactInfo = [
+    ...(whatsapp ? [{ icon: MessageCircle, title: 'WhatsApp', info: 'Resposta mais rápida', link: whatsapp }] : []),
     {
       icon: Mail,
       title: 'Email',
@@ -81,7 +84,7 @@ export default function ContatoPage() {
       {/* Contact Info Cards */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-16">
+          <div className={`grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-16 ${contactInfo.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
             {contactInfo.map((item, index) => {
               const Icon = item.icon
               return (
@@ -94,6 +97,7 @@ export default function ContatoPage() {
                       <h3 className="font-semibold mb-2">{item.title}</h3>
                       <a 
                         href={item.link}
+                        {...(item.link.startsWith('https://') ? { target: '_blank', rel: 'noreferrer' } : {})}
                         className="text-sm text-muted-foreground hover:text-electric transition-colors"
                       >
                         {item.info}

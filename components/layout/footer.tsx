@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Logo } from '@/components/brand/logo'
 import { CookiePreferencesButton } from '@/components/analytics/cookie-preferences-button'
+import { storeWhatsappLink } from '@/lib/whatsapp'
 
 const COLUMNS: { title: string; links: [string, string][] }[] = [
   {
@@ -37,6 +38,7 @@ const COLUMNS: { title: string; links: [string, string][] }[] = [
 export function Footer() {
   const pathname = usePathname()
   if (pathname?.startsWith('/admin')) return null
+  const whatsapp = storeWhatsappLink('Olá! Vim pelo site da AstaCar e tenho uma dúvida.')
 
   return (
     <footer className="mt-20 border-t border-white/5 bg-asphalt text-asphalt-foreground">
@@ -58,6 +60,13 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              {col.title === 'Atendimento' && whatsapp && (
+                <li>
+                  <a href={whatsapp} target="_blank" rel="noreferrer" className="text-asphalt-foreground/65 transition-colors hover:text-[hsl(186_100%_50%)]">
+                    WhatsApp
+                  </a>
+                </li>
+              )}
               {col.title === 'Atendimento' && (
                 <li><CookiePreferencesButton variant="link" /></li>
               )}
