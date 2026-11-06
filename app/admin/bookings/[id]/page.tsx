@@ -20,6 +20,7 @@ import {
   Car,
   Calendar,
   DollarSign,
+  FileText,
   Clock
 } from 'lucide-react'
 import Link from 'next/link'
@@ -196,9 +197,16 @@ export default function BookingDetailsPage() {
             <h1 className="text-3xl font-bold mb-2">Detalhes da Reserva</h1>
             <p className="text-muted-foreground">ID: {booking.id.slice(0, 8)}...</p>
           </div>
-          <Badge className={getStatusColor(booking.status)}>
-            {getStatusLabel(booking.status)}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/bookings/${booking.id}/contract`} target="_blank" rel="noreferrer">
+                <FileText className="mr-2 h-4 w-4" aria-hidden /> Contrato (PDF)
+              </a>
+            </Button>
+            <Badge className={getStatusColor(booking.status)}>
+              {getStatusLabel(booking.status)}
+            </Badge>
+          </div>
         </div>
       </div>
 
