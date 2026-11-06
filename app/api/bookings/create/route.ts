@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 import { z } from 'zod'
-import { isIsoDate } from '@/lib/rental'
+import { isIsoDate, isPastDate } from '@/lib/rental'
 import { QuoteError } from '@/lib/pricing'
 import { claimCoupon, quoteReservation, releaseCoupon } from '@/lib/quote-server'
 import { onlinePaymentEnabled } from '@/lib/payments/mercadopago'
@@ -38,9 +38,8 @@ export async function POST(req: NextRequest) {
     const end = new Date(`${end_date}T00:00:00Z`)
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000)
     if (days < 1 || days > 90) return NextResponse.json({ error: 'Período de reserva inválido' }, { status: 400 })
-    // Tolera um dia de diferença de fuso entre o navegador e o servidor.
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-    if (start_date < yesterday) return NextResponse.json({ error: 'A retirada não pode ser em uma data que já passou.' }, { status: 400 })
+    // Mesmo calendário do site (Brasília), sem depender do fuso do servidor.
+    if (isPastDate(start_date)) return NextResponse.json({ error: 'A retirada não pode ser em uma data que já passou.' }, { status: 400 })
 
     // Identidade validada no Nhost Auth; nunca a partir de um JWT decodificado à mão.
     const auth = await requireUser()

@@ -1,3 +1,4 @@
+import { todayIso } from '@/lib/rental'
 import Papa from 'papaparse'
 
 // Um nome de cliente como "=HYPERLINK(...)" viraria fórmula ao abrir no Excel.
@@ -12,7 +13,7 @@ export function exportToCSV(data: any[], filename: string) {
   const url = URL.createObjectURL(blob)
   
   link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`)
+  link.setAttribute('download', `${filename}_${todayIso()}.csv`)
   link.style.visibility = 'hidden'
   
   document.body.appendChild(link)

@@ -16,6 +16,7 @@ import {
   User,
   Mail,
   Phone,
+  IdCard,
   Car,
   Calendar,
   DollarSign,
@@ -28,6 +29,7 @@ import Image from 'next/image'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatBRL } from '@/lib/rental'
+import { formatPhone, whatsappUrl } from '@/lib/phone'
 
 type BookingDetails = {
   id: string
@@ -47,6 +49,7 @@ type BookingDetails = {
     displayName?: string
     phoneNumber?: string
   }
+  profile?: { full_name: string | null; phone: string | null; cpf: string | null } | null
   vehicle: {
     id: string
     brand: string
@@ -175,6 +178,8 @@ export default function BookingDetailsPage() {
   }
 
   const days = calculateDays()
+  const phone = booking.profile?.phone ?? booking.user.phoneNumber ?? null
+  const whatsapp = whatsappUrl(phone, `Olá! Aqui é da AstaCar, sobre a sua reserva do ${booking.vehicle.brand} ${booking.vehicle.model}.`)
 
   return (
     <div className="p-8">
@@ -208,7 +213,7 @@ export default function BookingDetailsPage() {
             <div className="flex items-center gap-3">
               <User className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">{booking.user.displayName || 'Sem nome'}</p>
+                <p className="font-medium">{booking.profile?.full_name || booking.user.displayName || 'Sem nome'}</p>
                 <p className="text-sm text-muted-foreground">Nome completo</p>
               </div>
             </div>
@@ -224,10 +229,33 @@ export default function BookingDetailsPage() {
             <div className="flex items-center gap-3">
               <Phone className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">{booking.user.phoneNumber || 'Não informado'}</p>
+                {phone ? (
+                  <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                    <a href={`tel:+55${phone}`} className="hover:underline">{formatPhone(phone)}</a>
+                    {whatsapp && (
+                      <a href={whatsapp} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-600 hover:underline dark:text-emerald-400">
+                        WhatsApp
+                      </a>
+                    )}
+                  </p>
+                ) : (
+                  <p className="font-medium text-muted-foreground">Não informado no perfil</p>
+                )}
                 <p className="text-sm text-muted-foreground">Telefone</p>
               </div>
             </div>
+            {booking.profile?.cpf && (
+              <>
+                <Separator />
+                <div className="flex items-center gap-3">
+                  <IdCard className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{formatCpf(booking.profile.cpf)}</p>
+                    <p className="text-sm text-muted-foreground">CPF</p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -440,4 +468,9 @@ export default function BookingDetailsPage() {
       </Card>
     </div>
   )
+}
+
+function formatCpf(cpf: string) {
+  const d = cpf.replace(/\D/g, '')
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : cpf
 }
