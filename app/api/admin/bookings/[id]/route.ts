@@ -1,3 +1,5 @@
+import { requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
@@ -6,7 +8,8 @@ const STATUSES = ['pending', 'confirmed', 'active', 'completed', 'cancelled']
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const params = await ctx.params
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await adminGraphql<{ bookings_by_pk: unknown }>(
       `query AdminBooking($id: uuid!) {
@@ -18,11 +21,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       }`,
       { id: params.id },
     )
-    if (!data.bookings_by_pk) return NextResponse.json({ error: 'Reserva não encontrada' }, { status: 404 })
-    return NextResponse.json(data.bookings_by_pk)
+    if (!data.bookings_by_pk) return viewerJson(viewer, { error: 'Reserva não encontrada' }, { status: 404 })
+    return viewerJson(viewer, data.bookings_by_pk)
   } catch (error) {
     console.error('[admin/bookings/:id GET]', error)
-    return NextResponse.json({ error: 'Erro ao carregar a reserva' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar a reserva' }, { status: 500 })
   }
 }
 

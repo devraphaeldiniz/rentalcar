@@ -1,21 +1,23 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, adminGraphql } from '@/lib/auth/authorization'
+import { requireAdmin, adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { EDITABLE_VEHICLE_FIELDS as EDITABLE, pickVehicleFields } from '@/lib/vehicle-fields'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const params = await ctx.params
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const data = await adminGraphql<{ vehicles_by_pk: unknown }>(
       `query AdminVehicle($id: uuid!) { vehicles_by_pk(id: $id) { id ${EDITABLE.join(' ')} image_credits } }`,
       { id: params.id },
     )
-    if (!data.vehicles_by_pk) return NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 })
-    return NextResponse.json({ vehicle: data.vehicles_by_pk })
+    if (!data.vehicles_by_pk) return viewerJson(viewer, { error: 'Veículo não encontrado' }, { status: 404 })
+    return viewerJson(viewer, { vehicle: data.vehicles_by_pk })
   } catch (error) {
     console.error('[admin/vehicles/:id GET]', error)
-    return NextResponse.json({ error: 'Erro ao carregar o veículo' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao carregar o veículo' }, { status: 500 })
   }
 }
 

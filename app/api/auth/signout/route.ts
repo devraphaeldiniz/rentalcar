@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { authUrl, cookieOptions, ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/auth/authorization'
+import { DEMO_ADMIN_COOKIE } from '@/lib/demo-admin'
 
 // Os cookies de sessão são httpOnly: o navegador não consegue apagá-los,
 // então o logout precisa passar pelo servidor.
@@ -26,5 +27,6 @@ export async function POST() {
   const res = NextResponse.json({ success: true })
   res.cookies.set(ACCESS_COOKIE, '', cookieOptions(0))
   res.cookies.set(REFRESH_COOKIE, '', cookieOptions(0))
+  res.cookies.set(DEMO_ADMIN_COOKIE, '', cookieOptions(0))
   return res
 }

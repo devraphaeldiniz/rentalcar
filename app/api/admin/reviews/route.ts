@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 export async function GET(req: NextRequest) {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
@@ -40,10 +42,10 @@ export async function GET(req: NextRequest) {
     })
 
     const result = await response.json()
-    return NextResponse.json(result.data.reviews)
+    return viewerJson(viewer, result.data.reviews)
   } catch (error: any) {
     console.error('Error fetching reviews:', error)
-    return NextResponse.json({ error: 'Erro ao buscar avaliações' }, { status: 500 })
+    return viewerJson(viewer, { error: 'Erro ao buscar avaliações' }, { status: 500 })
   }
 }
 

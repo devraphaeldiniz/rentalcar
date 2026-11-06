@@ -1,9 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 
 export async function GET(req: NextRequest) {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const searchParams = req.nextUrl.searchParams
     const startDate = searchParams.get('startDate')
@@ -66,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     if (result.errors) {
       console.error('GraphQL errors:', result.errors)
-      return NextResponse.json({ error: result.errors[0].message }, { status: 500 })
+      return viewerJson(viewer, { error: result.errors[0].message }, { status: 500 })
     }
 
     const data = result.data
@@ -106,9 +108,9 @@ export async function GET(req: NextRequest) {
     }
 
 
-    return NextResponse.json(financialData)
+    return viewerJson(viewer, financialData)
   } catch (error: any) {
     console.error('Error in financial report:', error)
-    return NextResponse.json({ error: error.message || 'Erro ao gerar relatório financeiro' }, { status: 500 })
+    return viewerJson(viewer, { error: error.message || 'Erro ao gerar relatório financeiro' }, { status: 500 })
   }
 }
