@@ -47,7 +47,7 @@ export function ReviewForm({ bookingId, vehicleId, onSuccess }: ReviewFormProps)
       setRating(0)
       setComment('')
       onSuccess?.()
-    } catch (error) {
+    } catch {
       showToast('Erro ao enviar avaliação', 'error')
     } finally {
       setIsSubmitting(false)

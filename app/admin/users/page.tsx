@@ -26,6 +26,7 @@ import { Search, Shield, User, Edit, Loader2, Ban, CheckCircle2 } from 'lucide-r
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useConfirm } from '@/components/admin/confirm-dialog'
+import { useToast } from '@/lib/contexts/toast-context'
 
 type Profile = {
   id: string
@@ -41,6 +42,7 @@ type Profile = {
 
 export default function UsersAdminPage() {
   const { confirm, dialog } = useConfirm()
+  const { showToast } = useToast()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -139,9 +141,13 @@ export default function UsersAdminPage() {
         fetchProfiles()
         setIsDialogOpen(false)
         setEditingProfile(null)
+      } else {
+        const result = await response.json().catch(() => ({}))
+        showToast(result.error || 'Não foi possível salvar o perfil.', 'error')
       }
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error)
+      showToast('Sem conexão com o servidor.', 'error')
     }
   }
 

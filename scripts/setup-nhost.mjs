@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Prepara um projeto Nhost do zero (ou atualiza um existente) para o RentalCar.
+// Prepara um projeto Nhost do zero (ou atualiza um existente) para a AstaCar.
 //
 //   node scripts/setup-nhost.mjs                      aplica migrações e metadata
 //   node scripts/setup-nhost.mjs --admin voce@email   ...e promove esse usuário a admin

@@ -358,17 +358,22 @@ Todas as rotas validam a entrada com **zod**. As do admin exigem papel `admin` c
 | Método | Rota | Para quê |
 | :-- | :-- | :-- |
 | POST | `/api/auth/signup` · `/signin` · `/signout` | cadastro, login (com limite de tentativas) e logout |
-| GET | `/api/auth/check` | quem está logado |
+| GET | `/api/auth/check` | quem está logado (`?soft=1` responde 200 para visitante) |
+| POST | `/api/auth/demo` | entra na conta de demonstração do cliente ou do painel (só leitura) |
 | GET | `/api/vehicles/[id]` · `/api/extras` | carro e proteções/opcionais ativos |
 | POST | `/api/quote` | cotação oficial (temporada, duração, cupom, opcionais) |
 | POST | `/api/bookings/create` | cria a reserva (recalcula o valor e exige o aceite dos termos) |
 | GET | `/api/bookings/my` | reservas do cliente |
-| POST | `/api/bookings/[id]/cancel` | cancela antes da retirada |
+| POST | `/api/bookings/[id]/cancel` | cancela antes da retirada (devolve o uso do cupom) |
+| GET | `/api/bookings/[id]/contract` | contrato da reserva em PDF |
 | GET · PATCH | `/api/profile` | dados do cliente (CPF validado) |
 | POST | `/api/profile/password` | troca de senha |
+| GET · PUT | `/api/profile/cnh` | CNH do cliente e se ela vale para a data da retirada |
 | GET · POST | `/api/reviews` | avaliações |
 | POST | `/api/contact` | formulário de contato (campo-isca e limite por IP) |
 | POST | `/api/track` | eventos do funil (só com consentimento) |
+| POST | `/api/monitoring/client-error` | erros do navegador para a tela Erros e saúde |
+| GET | `/api/health` | saúde da aplicação para monitores externos (200/503) |
 | POST | `/api/webhooks/n8n` | integração opcional, desligada sem segredo forte |
 
 </details>
@@ -380,8 +385,10 @@ Todas as rotas validam a entrada com **zod**. As do admin exigem papel `admin` c
 | :-- | :-- |
 | `/api/admin/dashboard` · `/analytics` · `/security` | GET |
 | `/api/admin/bookings` · `/bookings/[id]` | GET · PATCH |
+| `/api/admin/bookings/[id]/inspection` | GET · POST (vistoria de retirada e devolução) |
+| `/api/admin/blocks` | GET · POST · DELETE (bloqueio de carro por período) |
 | `/api/admin/vehicles` · `/vehicles/[id]` | GET · POST · PATCH · DELETE |
-| `/api/admin/users` · `/users/role` · `/users/block` | GET · POST |
+| `/api/admin/profiles` · `/profiles/[id]` · `/users/role` · `/users/block` | GET · PATCH · POST |
 | `/api/admin/extras` | GET · PATCH |
 | `/api/admin/pricing-rules` | GET · POST · PATCH · DELETE |
 | `/api/admin/coupons` | GET · POST · PATCH |

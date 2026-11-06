@@ -136,9 +136,9 @@ export default function EditVehiclePage() {
           router.push('/admin/vehicles')
         }, 1500)
       }
-    } catch (err: any) {
-      console.error('Erro completo:', err)
-      setError('Erro ao salvar veículo: ' + err.message)
+    } catch (err) {
+      console.error('[veículo] erro ao salvar:', err)
+      setError('Sem conexão com o servidor. Tente de novo.')
     } finally {
       setIsSaving(false)
     }
@@ -268,7 +268,7 @@ export default function EditVehiclePage() {
                     min="2000"
                     max={new Date().getFullYear() + 1}
                     value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value, 10) })}
                     required
                   />
                 </div>
@@ -384,7 +384,7 @@ export default function EditVehiclePage() {
                     min="1"
                     max="9"
                     value={formData.passengers}
-                    onChange={(e) => setFormData({ ...formData, passengers: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, passengers: parseInt(e.target.value, 10) })}
                   />
                 </div>
                 <div>
@@ -395,7 +395,7 @@ export default function EditVehiclePage() {
                     min="2"
                     max="5"
                     value={formData.doors}
-                    onChange={(e) => setFormData({ ...formData, doors: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, doors: parseInt(e.target.value, 10) })}
                   />
                 </div>
                 <div>
@@ -425,7 +425,12 @@ export default function EditVehiclePage() {
                   placeholder="https://i.ibb.co/..."
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addImageUrl())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addImageUrl()
+                    }
+                  }}
                 />
                 <Button type="button" onClick={addImageUrl}>
                   <Upload className="h-4 w-4 mr-2" />

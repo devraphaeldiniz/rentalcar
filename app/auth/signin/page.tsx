@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { safeRedirect } from '@/lib/safe-redirect'
@@ -20,7 +20,6 @@ export default function SignInPage() {
     if (!alreadyIn) return
     window.location.replace(safeRedirect(new URLSearchParams(window.location.search).get('redirect')))
   }, [alreadyIn])
-  const router = useRouter()
   const params = useSearchParams()
   const cadastro = params.get('cadastro')
   const [email, setEmail] = useState(params.get('email') ?? '')
@@ -87,7 +86,7 @@ export default function SignInPage() {
 
       // Volta para onde a pessoa estava (só caminhos internos).
       window.location.href = safeRedirect(new URLSearchParams(window.location.search).get('redirect'))
-    } catch (err) {
+    } catch {
       setError('Erro ao conectar ao servidor')
     } finally {
       setIsLoading(false)

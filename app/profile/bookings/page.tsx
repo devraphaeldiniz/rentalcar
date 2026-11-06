@@ -112,7 +112,7 @@ export default function MyBookingsPage() {
             const status = BOOKING_STATUS[b.status] ?? { label: b.status, tone: 'done' as const }
             const image = b.vehicle?.images?.[0] || b.vehicle?.image_url
             const canCancel = ['pending', 'confirmed'].includes(b.status) && b.start_date > today
-            const canReview = b.status === 'completed' && !(b.reviews && b.reviews.length)
+            const canReview = b.status === 'completed' && !(b.reviews?.length)
             return (
               <li key={b.id} className="overflow-hidden rounded-lg border bg-card">
                 <div className="flex flex-col gap-4 p-4 sm:flex-row">

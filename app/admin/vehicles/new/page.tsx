@@ -50,9 +50,6 @@ export default function NewVehiclePage() {
     setIsLoading(true)
     setError('')
 
-    console.log('=== DADOS DO FORMULÁRIO ===')
-    console.log('FormData:', formData)
-    console.log('Images:', imageUrls)
 
     try {
       const response = await fetch('/api/admin/vehicles/create', {
@@ -65,9 +62,7 @@ export default function NewVehiclePage() {
         }),
       })
 
-      console.log('Response status:', response.status)
       const result = await response.json()
-      console.log('Response data:', result)
 
       if (!response.ok || result.error) {
         setError(result.error || 'Erro ao salvar veículo')
@@ -75,9 +70,9 @@ export default function NewVehiclePage() {
         showToast('Veículo criado.', 'success')
         router.push('/admin/vehicles')
       }
-    } catch (err: any) {
-      console.error('Erro completo:', err)
-      setError('Erro ao salvar veículo: ' + err.message)
+    } catch (err) {
+      console.error('[veículo] erro ao salvar:', err)
+      setError('Sem conexão com o servidor. Tente de novo.')
     } finally {
       setIsLoading(false)
     }
@@ -85,7 +80,6 @@ export default function NewVehiclePage() {
 
   const addImageUrl = () => {
     if (newImageUrl.trim() && !imageUrls.includes(newImageUrl)) {
-      console.log('Adicionando imagem:', newImageUrl)
       setImageUrls([...imageUrls, newImageUrl])
       setNewImageUrl('')
     }
@@ -174,7 +168,7 @@ export default function NewVehiclePage() {
                     min="2000"
                     max={new Date().getFullYear() + 1}
                     value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value, 10) })}
                     required
                   />
                 </div>
@@ -290,7 +284,7 @@ export default function NewVehiclePage() {
                     min="1"
                     max="9"
                     value={formData.passengers}
-                    onChange={(e) => setFormData({ ...formData, passengers: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, passengers: parseInt(e.target.value, 10) })}
                   />
                 </div>
                 <div>
@@ -301,7 +295,7 @@ export default function NewVehiclePage() {
                     min="2"
                     max="5"
                     value={formData.doors}
-                    onChange={(e) => setFormData({ ...formData, doors: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, doors: parseInt(e.target.value, 10) })}
                   />
                 </div>
                 <div>
@@ -331,7 +325,12 @@ export default function NewVehiclePage() {
                   placeholder="https://i.ibb.co/..."
                   value={newImageUrl}
                   onChange={(e) => setNewImageUrl(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addImageUrl())}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addImageUrl()
+                    }
+                  }}
                 />
                 <Button type="button" onClick={addImageUrl}>
                   <Upload className="h-4 w-4 mr-2" />

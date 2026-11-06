@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Mail, Phone, MapPin, Clock, MessageCircle, Send } from 'lucide-react'
 import { storeWhatsappLink } from '@/lib/whatsapp'
+import { CONTACT_EMAIL } from '@/lib/site'
 
 export default function ContatoPage() {
   const [formData, setFormData] = useState({
@@ -51,12 +52,8 @@ export default function ContatoPage() {
   const whatsapp = storeWhatsappLink('Olá! Vim pelo site da AstaCar e tenho uma dúvida.')
   const contactInfo = [
     ...(whatsapp ? [{ icon: MessageCircle, title: 'WhatsApp', info: 'Resposta mais rápida', link: whatsapp }] : []),
-    {
-      icon: Mail,
-      title: 'Email',
-      info: 'contato@rentalcar.com',
-      link: 'mailto:contato@rentalcar.com'
-    },
+    // E-mail de atendimento só aparece se estiver configurado (antes era um endereço fictício).
+    ...(CONTACT_EMAIL ? [{ icon: Mail, title: 'Email', info: CONTACT_EMAIL, link: `mailto:${CONTACT_EMAIL}` }] : []),
     {
       icon: Phone,
       title: 'Telefone',
@@ -84,7 +81,7 @@ export default function ContatoPage() {
       {/* Contact Info Cards */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className={`grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-16 ${contactInfo.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+          <div className={`grid md:grid-cols-2 gap-6 max-w-6xl mx-auto mb-16 ${contactInfo.length > 4 ? 'lg:grid-cols-5' : contactInfo.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
             {contactInfo.map((item, index) => {
               const Icon = item.icon
               return (

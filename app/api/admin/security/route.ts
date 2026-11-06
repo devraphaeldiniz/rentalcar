@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { requireAdmin, adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdminView } from '@/lib/auth/authorization'
 import { viewerJson } from '@/lib/auth/admin-view'
 
 type Count = { aggregate: { count: number } }

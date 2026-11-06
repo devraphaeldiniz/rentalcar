@@ -14,7 +14,7 @@ test.describe('proteção do painel e das contas', () => {
   })
 
   test('rotas de API do admin recusam visitante', async ({ request }) => {
-    for (const path of ['/api/admin/bookings', '/api/admin/users', '/api/admin/dashboard', '/api/admin/messages']) {
+    for (const path of ['/api/admin/bookings', '/api/admin/profiles', '/api/admin/dashboard', '/api/admin/messages', '/api/admin/blocks']) {
       const res = await request.get(path)
       expect(res.status(), path).toBe(403)
     }

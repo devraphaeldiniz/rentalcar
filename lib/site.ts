@@ -8,6 +8,9 @@ export const SITE_URL = (
 
 export const SITE_NAME = 'AstaCar'
 
+/** E-mail de atendimento exibido no Contato (opcional). */
+export const CONTACT_EMAIL = (process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? '').trim() || null
+
 /** Páginas de categoria com endereço amigável (ex.: /aluguel/suv). */
 export const CATEGORY_SLUGS: Record<string, string> = {
   economy: 'economico',

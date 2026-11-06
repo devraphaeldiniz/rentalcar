@@ -27,7 +27,7 @@ type AuditLog = {
   resource_id?: string
   ip_address?: string
   user_agent?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   created_at: string
 }
 
@@ -61,13 +61,12 @@ export default function AuditLogsPage() {
   }
 
   const getActionIcon = (action: string) => {
-    const iconMap: Record<string, any> = {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
       'user.login': LogIn,
       'user.logout': LogOut,
       'user.register': UserPlus,
       'user.password_reset': Key,
-      'user.2fa_enabled': Shield,
-      'user.2fa_disabled': Shield,
+      'profile.updated': Edit,
       'booking.created': Car,
       'booking.updated': Edit,
       'booking.cancelled': Trash2,
@@ -85,7 +84,7 @@ export default function AuditLogsPage() {
     if (action.includes('login') || action.includes('register')) return 'text-green-600'
     if (action.includes('logout')) return 'text-blue-600'
     if (action.includes('delete') || action.includes('cancel')) return 'text-red-600'
-    if (action.includes('2fa') || action.includes('admin')) return 'text-purple-600'
+    if (action.includes('admin')) return 'text-purple-600'
     return 'text-gray-600'
   }
 
@@ -95,15 +94,15 @@ export default function AuditLogsPage() {
       'user.logout': 'Logout realizado',
       'user.register': 'Conta criada',
       'user.password_reset': 'Senha redefinida',
-      'user.2fa_enabled': '2FA ativado',
-      'user.2fa_disabled': '2FA desativado',
+      'profile.updated': 'Dados do perfil alterados',
       'booking.created': 'Reserva criada',
       'booking.updated': 'Reserva atualizada',
       'booking.cancelled': 'Reserva cancelada',
       'vehicle.created': 'Veículo adicionado',
       'vehicle.updated': 'Veículo atualizado',
       'vehicle.deleted': 'Veículo removido',
-      'admin.access': 'Acesso admin',
+      'admin.access': 'Ação no painel admin',
+      'pricing.updated': 'Preços ou cupons alterados',
     }
     
     return labels[action] || action

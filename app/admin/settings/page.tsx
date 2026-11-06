@@ -1,242 +1,91 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { CheckCircle2, CircleDashed } from 'lucide-react'
+import { requireAdminView } from '@/lib/auth/authorization'
+import { MIN_LICENSE_YEARS } from '@/lib/cnh'
+import { DEMO_LIMITS, demoAdminEnabled, demoEnabled } from '@/lib/demo'
+import { emailEnabled } from '@/lib/email/send'
+import { onlinePaymentEnabled } from '@/lib/payments/mercadopago'
+import { TERMS_VERSION } from '@/lib/policies'
+import { MAX_RENTAL_DAYS } from '@/lib/rental'
+import { SITE_URL } from '@/lib/site'
+import { STORE_WHATSAPP } from '@/lib/whatsapp'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Settings, Bell, Mail, Shield, Database } from 'lucide-react'
-import { useToast } from '@/lib/contexts/toast-context'
+export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Configurações' }
 
-export default function SettingsPage() {
-  const { showToast } = useToast()
-  const [settings, setSettings] = useState({
-    siteName: 'AstaCar',
-    siteDescription: 'Sistema de aluguel de veículos',
-    contactEmail: 'contato@rentalcar.com',
-    supportEmail: 'suporte@rentalcar.com',
-    enableNotifications: true,
-    enableEmailAlerts: true,
-    enableAutoApproval: false,
-    maintenanceMode: false,
-    maxBookingDays: 30,
-    minBookingDays: 1,
-    cancellationDeadline: 24
-  })
+type Item = { label: string; on: boolean; detail: string; env: string }
 
-  const handleSave = async () => {
-    try {
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      })
+/**
+ * O que está ligado neste ambiente e as regras que valem hoje.
+ * As integrações se configuram nas variáveis da Vercel; esta tela só mostra se estão presentes (nunca os valores).
+ */
+export default async function SettingsPage() {
+  if (!(await requireAdminView())) redirect('/')
 
-      if (response.ok) {
-        showToast('Configurações salvas.', 'success')
-      }
-    } catch (error) {
-      showToast('Não foi possível salvar as configurações.', 'error')
-    }
-  }
+  const integrations: Item[] = [
+    { label: 'Pagamento online (Mercado Pago)', on: onlinePaymentEnabled(), detail: 'Pix, cartão e boleto no checkout.', env: 'MP_ACCESS_TOKEN, NEXT_PUBLIC_MP_PUBLIC_KEY' },
+    { label: 'Confirmação de pagamento (webhook)', on: Boolean(process.env.MP_WEBHOOK_SECRET), detail: 'Valida a assinatura das notificações do Mercado Pago.', env: 'MP_WEBHOOK_SECRET' },
+    { label: 'E-mails da reserva (Resend)', on: emailEnabled(), detail: 'Confirmação e lembrete na véspera da retirada.', env: 'RESEND_API_KEY, EMAIL_FROM' },
+    { label: 'Lembrete diário (Vercel Cron)', on: Boolean(process.env.CRON_SECRET), detail: 'Roda todo dia às 18h de Brasília.', env: 'CRON_SECRET' },
+    { label: 'WhatsApp do atendimento', on: Boolean(STORE_WHATSAPP), detail: 'Botão flutuante, rodapé, contato e confirmação.', env: 'NEXT_PUBLIC_WHATSAPP_NUMBER' },
+    { label: 'Conta de demonstração (cliente)', on: demoEnabled(), detail: 'Botão "Entrar como cliente de demonstração" no login.', env: 'DEMO_CLIENT_EMAIL, DEMO_CLIENT_PASSWORD' },
+    { label: 'Painel de demonstração (admin)', on: demoAdminEnabled(), detail: 'Botão "Ver o painel do admin", só leitura e com dados mascarados.', env: 'DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD' },
+  ]
+
+  const rules: [string, string][] = [
+    ['Período da locação', `De 1 a ${MAX_RENTAL_DAYS} diárias`],
+    ['Cancelamento pelo cliente', 'Pelo site, até o dia anterior à retirada, sem custo (calendário de Brasília)'],
+    ['CNH', `Categoria B ou superior, válida na retirada e com ${MIN_LICENSE_YEARS} anos de habilitação`],
+    ['Conta de demonstração', `Até ${DEMO_LIMITS.openBookings} reservas abertas, ${DEMO_LIMITS.maxDays} diárias e retirada em até ${DEMO_LIMITS.maxAdvanceDays} dias`],
+    ['Termos da locação', `Versão ${TERMS_VERSION}`],
+    ['Endereço do site', SITE_URL],
+    ['Versão no ar', process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local'],
+  ]
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Configurações</h1>
-        <p className="text-muted-foreground">Gerencie as configurações do sistema</p>
+    <div className="space-y-6 p-6 lg:p-8">
+      <div>
+        <h1 className="text-3xl font-bold">Configurações</h1>
+        <p className="text-muted-foreground">
+          Integrações ligadas neste ambiente e as regras em vigor. Preços, cupons e banners se ajustam nas próprias telas do painel.
+        </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="general">
-            <Settings className="mr-2 h-4 w-4" />
-            Geral
-          </TabsTrigger>
-          <TabsTrigger value="notifications">
-            <Bell className="mr-2 h-4 w-4" />
-            Notificações
-          </TabsTrigger>
-          <TabsTrigger value="email">
-            <Mail className="mr-2 h-4 w-4" />
-            Email
-          </TabsTrigger>
-          <TabsTrigger value="security">
-            <Shield className="mr-2 h-4 w-4" />
-            Segurança
-          </TabsTrigger>
-        </TabsList>
+      <section className="rounded-2xl border bg-card p-5" aria-labelledby="integracoes">
+        <h2 id="integracoes" className="font-bold">Integrações</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Configuradas nas variáveis de ambiente da Vercel. Esta tela só mostra se estão presentes, nunca os valores.
+        </p>
+        <ul className="mt-4 divide-y">
+          {integrations.map((i) => (
+            <li key={i.label} className="flex items-start gap-3 py-3 text-sm">
+              {i.on ? (
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
+              ) : (
+                <CircleDashed className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{i.label}</span>
+                <span className="block text-muted-foreground">{i.detail}</span>
+                {!i.on && <code className="mt-1 block break-all text-xs text-electric">{i.env}</code>}
+              </span>
+              <span className={`shrink-0 text-xs font-semibold ${i.on ? 'text-success' : 'text-muted-foreground'}`}>{i.on ? 'Ligado' : 'Desligado'}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-        <TabsContent value="general" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações Gerais</CardTitle>
-              <CardDescription>Configure as informações básicas do sistema</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Nome do Site</Label>
-                <Input
-                  value={settings.siteName}
-                  onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Descrição</Label>
-                <Textarea
-                  value={settings.siteDescription}
-                  onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Email de Contato</Label>
-                <Input
-                  type="email"
-                  value={settings.contactEmail}
-                  onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Email de Suporte</Label>
-                <Input
-                  type="email"
-                  value={settings.supportEmail}
-                  onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Regras de Reserva</CardTitle>
-              <CardDescription>Configure as políticas de reserva</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Período Máximo de Reserva (dias)</Label>
-                <Input
-                  type="number"
-                  value={settings.maxBookingDays}
-                  onChange={(e) => setSettings({ ...settings, maxBookingDays: parseInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <Label>Período Mínimo de Reserva (dias)</Label>
-                <Input
-                  type="number"
-                  value={settings.minBookingDays}
-                  onChange={(e) => setSettings({ ...settings, minBookingDays: parseInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <Label>Prazo de Cancelamento (horas)</Label>
-                <Input
-                  type="number"
-                  value={settings.cancellationDeadline}
-                  onChange={(e) => setSettings({ ...settings, cancellationDeadline: parseInt(e.target.value) })}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notificações</CardTitle>
-              <CardDescription>Configure as preferências de notificação</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Notificações Ativas</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receber notificações sobre atividades do sistema
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.enableNotifications}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, enableNotifications: checked })
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Aprovação Automática</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aprovar reservas automaticamente
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.enableAutoApproval}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, enableAutoApproval: checked })
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="email" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações de Email</CardTitle>
-              <CardDescription>Configure o envio de emails do sistema</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Alertas por Email</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enviar alertas importantes por email
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.enableEmailAlerts}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, enableEmailAlerts: checked })
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Segurança</CardTitle>
-              <CardDescription>Configure as opções de segurança do sistema</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Modo de Manutenção</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Desabilitar acesso público ao sistema
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.maintenanceMode}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, maintenanceMode: checked })
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <div className="mt-6 flex justify-end">
-        <Button onClick={handleSave}>Salvar Configurações</Button>
-      </div>
+      <section className="rounded-2xl border bg-card p-5" aria-labelledby="regras">
+        <h2 id="regras" className="font-bold">Regras em vigor</h2>
+        <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[14rem_1fr]">
+          {rules.map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="font-semibold text-muted-foreground">{k}</dt>
+              <dd className="break-words">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </div>
   )
 }

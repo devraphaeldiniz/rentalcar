@@ -80,12 +80,12 @@ export function computeQuote({ dailyRate, days, extras, protectionCode, addonCod
 
   const byCode = new Map(extras.map((e) => [e.code, e]))
   const protection = protectionCode ? byCode.get(protectionCode) : defaultProtection(extras)
-  if (protectionCode && (!protection || protection.kind !== 'protection')) throw new QuoteError('Proteção indisponível.')
+  if (protectionCode && (protection?.kind !== 'protection')) throw new QuoteError('Proteção indisponível.')
 
   const addons: Extra[] = []
   for (const code of new Set(addonCodes)) {
     const addon = byCode.get(code)
-    if (!addon || addon.kind !== 'addon') throw new QuoteError('Opcional indisponível.')
+    if (addon?.kind !== 'addon') throw new QuoteError('Opcional indisponível.')
     addons.push(addon)
   }
   addons.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
