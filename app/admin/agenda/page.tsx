@@ -4,7 +4,8 @@ import { Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Clock } from 'lucide-react'
-import { adminGraphql, requireAdmin } from '@/lib/auth/authorization'
+import { adminGraphql, requireAdminView } from '@/lib/auth/authorization'
+import { maskPersonalData } from '@/lib/demo-admin'
 import { addDaysIso, BOOKING_STATUS, formatBRL, formatLongDate, todayIso } from '@/lib/rental'
 
 export const dynamic = 'force-dynamic'
@@ -26,11 +27,12 @@ const DAYS = 7
 
 export default async function AgendaPage() {
   // Repetida aqui porque a página também é carregada sozinha na navegação do painel.
-  if (!(await requireAdmin())) redirect('/')
+  const viewer = await requireAdminView()
+  if (!viewer) redirect('/')
 
   const today = todayIso()
   const until = addDaysIso(today, DAYS - 1)
-  const data = await adminGraphql<{ pickups: Row[]; returns: Row[]; overdue: Row[]; pending: Row[] }>(
+  const raw = await adminGraphql<{ pickups: Row[]; returns: Row[]; overdue: Row[]; pending: Row[] }>(
     `query Agenda($today: date!, $until: date!) {
       pickups: bookings(where: { status: { _in: ["pending", "confirmed"] }, start_date: { _gte: $today, _lte: $until } }, order_by: { start_date: asc }) { ${FIELDS} }
       returns: bookings(where: { status: { _in: ["confirmed", "active"] }, end_date: { _gte: $today, _lte: $until } }, order_by: { end_date: asc }) { ${FIELDS} }
@@ -39,6 +41,8 @@ export default async function AgendaPage() {
     }`,
     { today, until },
   ).catch(() => null)
+  // Painel de demonstração: nomes e e-mails dos clientes saem mascarados.
+  const data = raw && viewer.demo ? maskPersonalData(raw) : raw
 
   if (!data) {
     return <div className="p-6 lg:p-8"><h1 className="text-3xl font-bold">Agenda</h1><p className="mt-4 text-muted-foreground">Não foi possível carregar a agenda agora.</p></div>

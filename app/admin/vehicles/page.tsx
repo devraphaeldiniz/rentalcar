@@ -25,6 +25,8 @@ import {
 import { Label } from '@/components/ui/label'
 import { Plus, Search, Edit, Trash2, Car } from 'lucide-react'
 import { CATEGORY_LABELS, CATEGORY_ORDER, formatBRL } from '@/lib/rental'
+import { useConfirm } from '@/components/admin/confirm-dialog'
+import { useToast } from '@/lib/contexts/toast-context'
 
 type Vehicle = {
   id: string
@@ -41,6 +43,8 @@ type Vehicle = {
 }
 
 export default function VehiclesAdminPage() {
+  const { confirm, dialog } = useConfirm()
+  const { showToast } = useToast()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -105,7 +109,13 @@ export default function VehiclesAdminPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este veículo?')) return
+    const ok = await confirm({
+      title: 'Excluir este veículo?',
+      description: 'Só dá para excluir carros sem reservas. Isso não pode ser desfeito.',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/admin/vehicles/${id}`, {
@@ -113,10 +123,15 @@ export default function VehiclesAdminPage() {
       })
 
       if (response.ok) {
+        showToast('Veículo excluído.', 'success')
         fetchVehicles()
+      } else {
+        const result = await response.json().catch(() => ({}))
+        showToast(result.error || 'Não foi possível excluir o veículo.', 'error')
       }
     } catch (error) {
       console.error('Erro ao deletar veículo:', error)
+      showToast('Não foi possível excluir o veículo.', 'error')
     }
   }
 
@@ -159,6 +174,7 @@ export default function VehiclesAdminPage() {
 
   return (
     <div className="p-8">
+      {dialog}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">Veículos</h1>

@@ -1,10 +1,12 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth/authorization'
+import { requireAdmin, requireAdminView } from '@/lib/auth/authorization'
+import { viewerJson } from '@/lib/auth/admin-view'
 import { pickVehicleFields } from '@/lib/vehicle-fields'
 
 export async function GET() {
-  if (!await requireAdmin()) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const viewer = await requireAdminView()
+  if (!viewer) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   try {
     const url = `https://${process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN}.graphql.${process.env.NEXT_PUBLIC_NHOST_REGION}.nhost.run/v1`
 
@@ -38,15 +40,15 @@ export async function GET() {
     const result = await response.json()
 
     if (result.errors) {
-      return NextResponse.json(
+      return viewerJson(viewer, 
         { error: result.errors[0].message },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ vehicles: result.data?.vehicles || [] })
+    return viewerJson(viewer, { vehicles: result.data?.vehicles || [] })
   } catch (error) {
-    return NextResponse.json(
+    return viewerJson(viewer, 
       { error: 'Erro ao buscar veículos' },
       { status: 500 }
     )
