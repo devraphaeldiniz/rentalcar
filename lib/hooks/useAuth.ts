@@ -27,12 +27,12 @@ export function useAuth() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/check', {
+      const response = await fetch('/api/auth/check?soft=1', {
         credentials: 'include'
       })
+      const data = response.ok ? await response.json() : null
 
-      if (response.ok) {
-        const data = await response.json()
+      if (data?.user) {
         setUser(data.user)
         setIsAuthenticated(true)
         setIsAdmin(data.user?.role === 'admin')

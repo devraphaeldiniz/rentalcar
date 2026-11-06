@@ -33,7 +33,7 @@ export function CookieConsent() {
         <p className="flex-1 text-sm text-muted-foreground">
           Usamos cookies próprios para contar visitas e entender como as pessoas usam o site, sem anúncios e sem compartilhar
           com terceiros. Você decide.{' '}
-          <Link href="/privacidade" className="text-electric hover:underline">Saiba mais</Link>
+          <Link href="/privacidade" className="text-electric underline underline-offset-2">Saiba mais</Link>
         </p>
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" onClick={() => choose('denied')} className="flex-1 sm:flex-none">Recusar</Button>

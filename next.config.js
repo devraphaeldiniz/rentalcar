@@ -36,6 +36,9 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
+  // Título, descrição e tags de compartilhamento sempre no <head>. Por padrão o Next 15 manda o
+  // metadata em streaming no fim do <body>, e o Lighthouse e vários leitores de link não acham.
+  htmlLimitedBots: /.*/,
   // Raiz do projeto explícita: evita que um package-lock.json solto em
   // pastas acima (ex.: a pasta do usuário) confunda o Next.
   outputFileTracingRoot: path.join(__dirname),

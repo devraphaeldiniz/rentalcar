@@ -91,7 +91,7 @@ export default function ContatoPage() {
                       <div className="mb-4 rounded-xl border border-electric/25 bg-electric/10 p-3">
                         <Icon className="h-6 w-6 text-electric" />
                       </div>
-                      <h3 className="font-semibold mb-2">{item.title}</h3>
+                      <h2 className="font-semibold mb-2">{item.title}</h2>
                       <a 
                         href={item.link}
                         className="text-sm text-muted-foreground hover:text-electric transition-colors"

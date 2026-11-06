@@ -32,7 +32,7 @@ export default function TermsPage() {
 
         <p className="mt-10 text-sm text-muted-foreground">
           Versão de {month}/{year}. Ao confirmar uma reserva você aceita estes termos; a data do aceite fica registrada na reserva.
-          Dúvidas? <Link href="/contato" className="text-electric hover:underline">Fale com a AstaCar</Link>.
+          Dúvidas? <Link href="/contato" className="text-electric underline underline-offset-2">Fale com a AstaCar</Link>.
         </p>
       </section>
     </main>

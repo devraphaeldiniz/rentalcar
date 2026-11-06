@@ -32,7 +32,7 @@ type LogoProps = {
 
 export function Logo({ href = '/', tagline = true, onDark = false, className }: LogoProps) {
   return (
-    <Link href={href} className={cn('group inline-flex items-center gap-2.5', className)} aria-label="AstaCar, página inicial">
+    <Link href={href} className={cn('group inline-flex items-center gap-2.5', className)} aria-label={tagline ? 'AstaCar Rent & Freedom, página inicial' : 'AstaCar, página inicial'}>
       <AstaMark className="transition-transform group-hover:-rotate-6" />
       <span className="flex flex-col leading-none">
         <span className={cn('text-xl font-black tracking-wide', onDark ? 'text-white' : 'text-foreground')}>
