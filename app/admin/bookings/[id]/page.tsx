@@ -23,6 +23,8 @@ import {
   Clock
 } from 'lucide-react'
 import Link from 'next/link'
+import { useConfirm } from '@/components/admin/confirm-dialog'
+import { useToast } from '@/lib/contexts/toast-context'
 import Image from 'next/image'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -60,6 +62,8 @@ type BookingDetails = {
 }
 
 export default function BookingDetailsPage() {
+  const { confirm, dialog } = useConfirm()
+  const { showToast } = useToast()
   const params = useParams()
   const bookingId = params.id as string
   const router = useRouter()
@@ -92,7 +96,14 @@ export default function BookingDetailsPage() {
   }
 
   const handleUpdateStatus = async (newStatus: string) => {
-    if (!confirm(`Deseja realmente ${newStatus === 'confirmed' ? 'aprovar' : newStatus === 'cancelled' ? 'cancelar' : 'concluir'} esta reserva?`)) return
+    const label = newStatus === 'confirmed' ? 'Aprovar' : newStatus === 'cancelled' ? 'Cancelar' : 'Concluir'
+    const ok = await confirm({
+      title: `${label} esta reserva?`,
+      description: newStatus === 'cancelled' ? 'O carro volta a ficar livre no período e o uso do cupom, se houver, é devolvido.' : undefined,
+      confirmLabel: newStatus === 'cancelled' ? 'Cancelar reserva' : label,
+      destructive: newStatus === 'cancelled',
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/admin/bookings/${bookingId}`, {
@@ -102,7 +113,11 @@ export default function BookingDetailsPage() {
       })
 
       if (response.ok) {
+        showToast('Status da reserva atualizado.', 'success')
         fetchBooking()
+      } else {
+        const result = await response.json().catch(() => ({}))
+        showToast(result.error || 'Não foi possível atualizar a reserva.', 'error')
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
@@ -168,6 +183,7 @@ export default function BookingDetailsPage() {
 
   return (
     <div className="p-8">
+      {dialog}
       <div className="mb-8">
         <Link href="/admin/bookings">
           <Button variant="ghost" className="mb-4">
