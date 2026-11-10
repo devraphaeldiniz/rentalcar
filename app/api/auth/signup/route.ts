@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { ACCESS_COOKIE, ACCESS_MAX_AGE, REFRESH_COOKIE, REFRESH_MAX_AGE, adminGraphql, authUrl, cookieOptions } from '@/lib/auth/authorization'
 import { createAuditLog } from '@/lib/security/audit'
+import { SIGNUPS_PER_IP_MAX, recentSignupsByIp } from '@/lib/security/rate-limit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
 
 const input = z.object({
@@ -50,7 +51,8 @@ export async function POST(req: NextRequest) {
   const { full_name, email, phone, password } = parsed.data
 
   const ip = await getClientIP()
-  if (!allowed(ip)) {
+  // Freio em memória (rajada, por instância) + teto no banco (vale entre instâncias).
+  if (!allowed(ip) || (await recentSignupsByIp(ip)) >= SIGNUPS_PER_IP_MAX) {
     return NextResponse.json({ error: 'Muitos cadastros a partir desta conexão. Tente de novo mais tarde.' }, { status: 429 })
   }
 
