@@ -511,8 +511,8 @@ Cada branch ganha uma URL de prévia; o `master` é publicado em produção.
 
 ## 🧭 Próximos passos
 
-- [ ] Pagamento online com **Mercado Pago** (PIX e cartão) e webhook de confirmação. *Em desenvolvimento.*
-- [ ] E-mail de confirmação e lembrete na véspera da retirada
+- [x] Pagamento online com **Mercado Pago** (PIX e cartão) e webhook de confirmação, em modo de teste
+- [x] E-mail de confirmação e lembrete na véspera da retirada (Resend + cron da Vercel). *Falta só verificar o domínio de envio.*
 - [ ] Entrega do carro no endereço do cliente ou pontos de retirada
 - [ ] Check-in digital: foto da CNH e vistoria por fotos
 - [ ] Programa de pontos e aluguel mensal (assinatura)
