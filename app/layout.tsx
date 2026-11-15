@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/lib/contexts/theme-context"
 import { ToastProvider } from "@/lib/contexts/toast-context"
 import { Header } from "@/components/layout/header"
+import { DemoNotice } from "@/components/layout/demo-notice"
 import { Footer } from "@/components/layout/footer"
 import { WhatsappButton } from "@/components/layout/whatsapp-button"
 import { CookieConsent } from "@/components/analytics/cookie-consent"
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           {/* Avisos rápidos (avaliação enviada, upload, painel). Sem o provider, essas telas quebravam. */}
           <ToastProvider>
+          <DemoNotice />
           <Header />
           <div className="flex-1">{children}</div>
           <Footer />
