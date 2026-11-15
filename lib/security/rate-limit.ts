@@ -20,6 +20,27 @@ export type RateLimitResult = {
   retryAfterMinutes: number
 }
 
+// Backstop em memória (por instância), usado SÓ quando a verificação no banco falha.
+// Mantém o login disponível se a tabela der soluço, mas sem ficar totalmente sem freio
+// (antes, uma falha no banco liberava a força bruta).
+const BACKSTOP_MAX = 10
+const backstop = new Map<string, { n: number; reset: number }>()
+function backstopAllows(key: string): boolean {
+  const now = Date.now()
+  const h = backstop.get(key)
+  if (!h || h.reset < now) {
+    if (backstop.size > 10000) backstop.clear()
+    backstop.set(key, { n: 1, reset: now + WINDOW_MINUTES * 60 * 1000 })
+    return true
+  }
+  h.n += 1
+  return h.n <= BACKSTOP_MAX
+}
+
+// Limite de cadastros por IP na última hora, contado no banco (vale entre instâncias).
+export const SIGNUPS_PER_IP_MAX = 8
+export const SIGNUP_WINDOW_MINUTES = 60
+
 export async function checkLoginRateLimit(email: string, ip: string): Promise<RateLimitResult> {
   const since = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000).toISOString()
   try {
@@ -47,10 +68,32 @@ export async function checkLoginRateLimit(email: string, ip: string): Promise<Ra
     const allowed = emailIpFailures < EMAIL_IP_MAX_FAILURES && emailFailures < EMAIL_MAX_FAILURES && ipFailures < IP_MAX_FAILURES
     return { allowed, retryAfterMinutes: allowed ? 0 : WINDOW_MINUTES }
   } catch (error) {
-    // Falha aberta de propósito: se a tabela de tentativas estiver fora do ar,
-    // o login continua funcionando (a senha ainda é validada pelo Nhost).
-    console.error('[rate-limit] verificação falhou:', error)
-    return { allowed: true, retryAfterMinutes: 0 }
+    // Banco fora do ar: cai no backstop em memória para não liberar força bruta.
+    console.error('[rate-limit] verificação falhou, usando backstop em memória:', error)
+    const allowed = backstopAllows(`${email}|${ip}`)
+    return { allowed, retryAfterMinutes: allowed ? 0 : WINDOW_MINUTES }
+  }
+}
+
+/**
+ * Quantos cadastros partiram deste IP na última hora (trilha de auditoria `user.register`).
+ * Em caso de erro devolve 0 — o freio em memória do cadastro ainda cobre rajadas.
+ */
+export async function recentSignupsByIp(ip: string): Promise<number> {
+  const since = new Date(Date.now() - SIGNUP_WINDOW_MINUTES * 60 * 1000).toISOString()
+  try {
+    const data = await adminGraphql<{ audit_logs_aggregate: { aggregate: { count: number } } }>(
+      `query SignupsByIp($ip: inet!, $since: timestamptz!) {
+        audit_logs_aggregate(where: { action: { _eq: "user.register" }, ip_address: { _eq: $ip }, created_at: { _gte: $since } }) {
+          aggregate { count }
+        }
+      }`,
+      { ip, since },
+    )
+    return data.audit_logs_aggregate?.aggregate?.count ?? 0
+  } catch (error) {
+    console.error('[rate-limit] contagem de cadastros falhou:', error)
+    return 0
   }
 }
 

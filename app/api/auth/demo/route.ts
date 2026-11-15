@@ -1,11 +1,15 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { ACCESS_COOKIE, ACCESS_MAX_AGE, REFRESH_COOKIE, REFRESH_MAX_AGE, authUrl, cookieOptions } from '@/lib/auth/authorization'
+import { ACCESS_COOKIE, ACCESS_MAX_AGE, REFRESH_COOKIE, authUrl, cookieOptions } from '@/lib/auth/authorization'
 import { demoAdminCredentials, demoAdminEnabled, demoCredentials, demoEnabled } from '@/lib/demo'
 import { DEMO_ADMIN_COOKIE } from '@/lib/demo-admin'
 import { createAuditLog } from '@/lib/security/audit'
 import { getClientIP, getUserAgent } from '@/lib/utils/ip'
+
+// Contas de demonstração são compartilhadas: a sessão dura pouco e não fica 30 dias
+// no navegador de quem só passou para conhecer.
+const DEMO_SESSION_MAX_AGE = 2 * 60 * 60
 
 // Limite por IP e por instância: evita que alguém use a rota para sobrecarregar o login.
 const WINDOW = 10 * 60 * 1000
@@ -55,9 +59,9 @@ export async function POST(req: Request) {
     await createAuditLog({ userId: session.user?.id, action: 'user.login', ipAddress: ip, userAgent: await getUserAgent(), metadata: { demo: asAdmin ? 'admin' : 'client' } })
     const res = NextResponse.json({ success: true })
     res.cookies.set(ACCESS_COOKIE, session.accessToken, cookieOptions(ACCESS_MAX_AGE))
-    res.cookies.set(REFRESH_COOKIE, session.refreshToken, cookieOptions(REFRESH_MAX_AGE))
+    res.cookies.set(REFRESH_COOKIE, session.refreshToken, cookieOptions(DEMO_SESSION_MAX_AGE))
     // Só um aviso para o middleware responder com uma mensagem clara; quem barra de verdade é o requireAdmin.
-    res.cookies.set(DEMO_ADMIN_COOKIE, asAdmin ? '1' : '', cookieOptions(asAdmin ? REFRESH_MAX_AGE : 0))
+    res.cookies.set(DEMO_ADMIN_COOKIE, asAdmin ? '1' : '', cookieOptions(asAdmin ? DEMO_SESSION_MAX_AGE : 0))
     return res
   } catch (error) {
     console.error('[demo]', error)
