@@ -54,7 +54,7 @@
 | Para o cliente | Para a locadora (painel admin) |
 | :-- | :-- |
 | Busca por datas com o **valor total do período** em cada carro | **Agenda** de retiradas e devoluções, atrasos e reservas a confirmar |
-| Catálogo de **32 carros em 8 categorias**, com fotos creditadas | **Funil de conversão**: visitas → carro aberto → início da reserva → reserva |
+| Catálogo de **34 carros em 8 categorias**, com fotos creditadas | **Funil de conversão**: visitas → carro aberto → início da reserva → reserva |
 | **Proteções** (básica, completa, total) e **opcionais** (condutor, cadeirinha, GPS, tanque cheio) | **Motivos de desistência** informados pelos clientes (preço, concorrência, datas…) |
 | **Desconto automático** por duração e **preço de temporada** | **Preços e opcionais**, **descontos**, **temporadas** e **cupons** editáveis |
 | **Cupons de desconto** com validade e limite de usos | **Banners** de ofertas próprias nos espaços do site |
@@ -634,7 +634,7 @@ A tela **Configurações** do painel mostra quais integrações estão ligadas n
 npm test
 ```
 
-**101 testes de unidade** (Vitest) em 19 arquivos, entre eles:
+**105 testes de unidade** (Vitest) em 20 arquivos, entre eles:
 
 | Arquivo | O que garante |
 | :-- | :-- |
